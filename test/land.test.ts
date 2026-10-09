@@ -32,6 +32,7 @@ beforeAll(async () => {
       const url = new URL(req.url);
       if (req.headers.get("authorization") !== "Bearer t") return new Response(null, { status: 401 });
       if (url.pathname === "/api/intent/i1") return Response.json({ intent: { state: "accepted", accepted_proposal_id: "p1", title: "Change a", seq: 1 }, project: { remote: `file://${project}` }, proposals: [{ proposal: { id: "p1", commit, fork_remote: `file://${fork}` } }] });
+      if (url.pathname === "/api/intent/i2") return Response.json({ intent: { state: "open", accepted_proposal_id: null, title: "Open one", seq: 2 }, project: { remote: `file://${project}` }, proposals: [] });
       if (url.pathname === "/api/intent/i1/export") return Response.json({ dir: "0001-change-a", blueprint: "# Blueprint\n\nV.\n", files: { "intent.md": "I\n", "exchanges.md": "E\n", "proposals.md": "P\n" } });
       return new Response("nf", { status: 404 });
     },
@@ -53,7 +54,10 @@ describe("bin/land", () => {
   });
   it("refuses when the intent is not accepted", async () => {
     const env = { ...process.env, ARMATURE_URL: `http://localhost:${server.port}`, ARMATURE_TOKEN: "t", ARMATURE_FORK_TOKEN: "x", ARMATURE_PROJECT_TOKEN: "x" };
-    const r = await $`sh bin/land demo nope`.env(env).nothrow().quiet();
-    expect(r.exitCode).not.toBe(0);
+    const r = await $`sh bin/land demo i2`.env(env).nothrow().quiet();
+    expect(r.exitCode).toBe(2);
+    expect(r.stderr.toString()).toContain("intent is open, not accepted");
+    const missing = await $`sh bin/land demo nope`.env(env).nothrow().quiet();
+    expect(missing.exitCode).not.toBe(0);
   });
 });
