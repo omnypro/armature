@@ -7,11 +7,12 @@ export interface ArtifactsPort {
   createToken(repo: string, scope: "read" | "write", ttlSeconds: number): Promise<{ plaintext: string; expiresAt: string }>;
   readFile(repo: string, ref: string, path: string): Promise<string | null>;
   headCommit(repo: string, ref: string): Promise<string | null>;
+  // First-parent ancestry only, within the most recent 1000 commits; landings are linear so this is sufficient.
   isAncestor(repo: string, ancestor: string, head: string): Promise<boolean>;
 }
 
 // Field names on ArtifactsCommitMetadata, read from worker-configuration.d.ts
-// in Task 1 step 8. Change these two constants if the generated type differs.
+// in Task 1 step 8. Change this constant if the generated type differs.
 const COMMIT_HASH_FIELD = "hash";
 
 const hashOf = (commit: unknown): string => (commit as Record<string, string>)[COMMIT_HASH_FIELD];

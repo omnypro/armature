@@ -60,10 +60,16 @@ export class FakeArtifacts implements ArtifactsPort {
     return next.hash;
   }
   copyCommit(from: string, hash: string, to: string, ref: string): void {
-    const src = this.repos.get(from)?.commits.get(hash);
+    const source = this.repos.get(from);
     const dst = this.repos.get(to);
-    if (!src || !dst) throw new Error("copyCommit: missing repo or commit");
-    dst.commits.set(hash, src);
+    if (!source?.commits.has(hash) || !dst) throw new Error("copyCommit: missing repo or commit");
+    let cursor: string | null = hash;
+    while (cursor && !dst.commits.has(cursor)) {
+      const commit: Commit | undefined = source.commits.get(cursor);
+      if (!commit) break;
+      dst.commits.set(cursor, commit);
+      cursor = commit.parent;
+    }
     dst.heads.set(ref, hash);
   }
 }
