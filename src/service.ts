@@ -36,6 +36,8 @@ export class Armature {
     return intent;
   }
 
+  listProjects(): Promise<Project[]> { return this.db.listProjects(); }
+
   async createProject(slug: string): Promise<Project> {
     if (!/^[a-z0-9][a-z0-9._-]{1,62}$/.test(slug)) throw new ServiceError("slug must be lowercase letters, digits, dots, dashes", 400);
     const repo = await this.artifacts.create(slug);

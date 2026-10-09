@@ -12,3 +12,6 @@ declare global {
 }
 
 await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
+
+import { FakeArtifacts } from "./fake-artifacts";
+(globalThis as { __fakeArtifacts?: FakeArtifacts }).__fakeArtifacts = new FakeArtifacts();
