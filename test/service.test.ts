@@ -235,4 +235,19 @@ describe("accept and land", () => {
     expect(files.dir).toBe("0001-ship");
     expect(files.blueprint).toBe("# Blueprint\n\nOne pilot.\n");
   });
+  it("exports an accepted chapter as landed on the accepted commit, without touching D1", async () => {
+    const { intent, commit, proposal } = await ready();
+    await svc.accept(intent.id, proposal.id);
+    const before = Date.now();
+    const files = await svc.exportChapter(intent.id);
+    const front = files.files["intent.md"].split("\n");
+    expect(front).toContain("state: landed");
+    expect(front).toContain(`commit: ${commit}`);
+    const landed = front.find((l) => l.startsWith("landed: "))!.slice("landed: ".length);
+    expect(Date.parse(landed)).toBeGreaterThanOrEqual(before - 1000);
+    const stored = (await svc.intentView(intent.id))!.intent;
+    expect(stored.state).toBe("accepted");
+    expect(stored.commit_ref).toBeNull();
+    expect(stored.landed_at).toBeNull();
+  });
 });

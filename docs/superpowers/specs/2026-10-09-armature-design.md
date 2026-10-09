@@ -192,6 +192,9 @@ One fork per limb per intent. The fork name is `<project>--<seq>--<limb>`.
 
 Exported at landing by `bin/land` through the `memoir.export` MCP call. The
 export is deterministic from the D1 record, so re-running it is harmless.
+The chapter is exported before the landing push, so `bin/land` writes it with
+`state: landed`, the accepted commit, and the export time; the file's presence
+on `main` is the proof.
 
 ```
 ARMATURE.md                  # doctrine: the pilot's standing rules for the crew

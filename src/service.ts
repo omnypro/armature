@@ -225,8 +225,10 @@ export class Armature {
   }
 
   async exportChapter(intentId: string): Promise<ChapterFiles> {
-    const intent = await this.intentOr404(intentId);
-    const project = (await this.db.getProject(intent.project_id))!;
+    const stored = await this.intentOr404(intentId);
+    const project = (await this.db.getProject(stored.project_id))!;
+    const accepted = stored.state === "accepted" && stored.accepted_proposal_id ? await this.db.getProposal(stored.accepted_proposal_id) : null;
+    const intent = accepted ? { ...stored, state: "landed" as const, commit_ref: accepted.commit, landed_at: now() } : stored;
     return renderChapter({ project, intent, exchanges: await this.db.listExchanges(intent.id), proposals: await this.db.listProposals(intent.id), forks: await this.db.listForks(intent.id) });
   }
 
