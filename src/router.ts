@@ -40,6 +40,7 @@ const routes: Route[] = [
   { method: "POST", pattern: /^\/i\/([^/]+)\/shelve$/, handler: async (a, [id]) => actions.shelve(a, id) },
   { method: "POST", pattern: /^\/i\/([^/]+)\/accept$/, handler: async (a, [id], r) => actions.accept(a, id, await r.formData()) },
   { method: "POST", pattern: /^\/i\/([^/]+)\/reject$/, handler: async (a, [id], r) => actions.reject(a, id, await r.formData()) },
+  { method: "POST", pattern: /^\/i\/([^/]+)\/verify$/, handler: async (a, [id]) => actions.verify(a, id) },
   { method: "GET", pattern: /^\/api\/intent\/([^/]+)$/, handler: async (a, [id]) => { const v = await a.intentView(id); return v ? json(v) : json({ error: "no such intent" }, 404); } },
   { method: "GET", pattern: /^\/api\/intent\/([^/]+)\/export$/, handler: async (a, [id]) => json(await a.exportChapter(id)) },
 ];

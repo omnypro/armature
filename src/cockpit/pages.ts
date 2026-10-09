@@ -53,7 +53,7 @@ ${p.state === "open" ? `<form class="inline" method="post" action="/i/${i.id}/ch
 <p>${v.unanswered.length} unanswered · ${v.openPokes.length} open poke${v.openPokes.length === 1 ? "" : "s"}
 ${i.state === "open" ? `<form class="inline" method="post" action="/i/${i.id}/close"><button>Close the challenge</button></form>` : ""}
 ${i.state === "open" || i.state === "closed" ? `<form class="inline" method="post" action="/i/${i.id}/shelve"><button>Shelve</button></form>` : ""}
-${i.state === "accepted" ? `<span class="mute">accepted; run <code>bin/land ${esc(v.project.slug)} ${i.id}</code> to land it</span>` : ""}</p>
+${i.state === "accepted" ? `<span class="mute">accepted; run <code>bin/land ${esc(v.project.slug)} ${i.id}</code> to land it</span> <form class="inline" method="post" action="/i/${i.id}/verify"><button>Verify landing</button></form>` : ""}</p>
 <h2>Exchanges</h2>${roots.map((e) => exchangeHtml(e, v.exchanges, i.id)).join("") || `<p class="mute">Nothing yet.</p>`}${steer}
 <h2>Forks</h2><table><tr><th>limb</th><th>repo</th><th>base</th><th>last push</th></tr>${forks}</table>
 <h2>Proposals</h2>${proposals || `<p class="mute">None filed.</p>`}`);

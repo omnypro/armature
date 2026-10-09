@@ -180,6 +180,13 @@ export class Armature {
     await this.db.recordEvent(intent.project_id, "proposal.rejected", proposal.id);
   }
 
+  private async land(intent: Intent, commitRef: string): Promise<void> {
+    assertTransition(intent.state, "landed");
+    await this.db.updateIntent(intent.id, { state: "landed", commit_ref: commitRef, landed_at: now() });
+    await this.db.recordEvent(intent.project_id, "intent.landed", intent.id, commitRef);
+  }
+
+  // truncated is kept for the callers; any push that does not list the accepted commit falls back to the ancestry check.
   async markLanded(repo: string, after: string, pushed: { id: string; parents: string[] }[], truncated: boolean): Promise<"landed" | "stray" | "ignored"> {
     if (await this.db.pushSeen(repo, after)) return "ignored";
     const project = await this.db.getProjectByRepo(repo);
@@ -189,16 +196,27 @@ export class Armature {
       const proposal = intent.accepted_proposal_id ? await this.db.getProposal(intent.accepted_proposal_id) : null;
       if (!proposal) continue;
       const inPayload = pushed.some((c) => c.id === proposal.commit || c.parents.includes(proposal.commit));
-      const descends = inPayload || (truncated && (await this.artifacts.isAncestor(repo, proposal.commit, after)));
+      const descends = inPayload || (await this.artifacts.isAncestor(repo, proposal.commit, after));
       if (!descends) continue;
-      assertTransition(intent.state, "landed");
-      await this.db.updateIntent(intent.id, { state: "landed", commit_ref: after, landed_at: now() });
-      await this.db.recordEvent(project.id, "intent.landed", intent.id, after);
+      await this.land(intent, after);
       landed++;
     }
     if (landed === 0) await this.db.recordEvent(project.id, "push.stray", after, repo);
     await this.db.markPushSeen(repo, after);
     return landed > 0 ? "landed" : "stray";
+  }
+
+  async verifyLanding(intentId: string): Promise<Intent> {
+    const intent = await this.intentOr404(intentId);
+    assertTransition(intent.state, "landed");
+    const proposal = intent.accepted_proposal_id ? await this.db.getProposal(intent.accepted_proposal_id) : null;
+    if (!proposal) throw new ServiceError("the intent has no accepted proposal");
+    const project = (await this.db.getProject(intent.project_id))!;
+    const head = await this.artifacts.headCommit(project.repo, "main");
+    if (!head) throw new ServiceError("the project repo has no main yet");
+    if (!(await this.artifacts.isAncestor(project.repo, proposal.commit, head))) throw new ServiceError("main does not contain the accepted commit yet");
+    await this.land(intent, head);
+    return (await this.db.getIntent(intent.id))!;
   }
 
   async exportChapter(intentId: string): Promise<ChapterFiles> {

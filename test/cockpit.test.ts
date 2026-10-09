@@ -88,6 +88,30 @@ describe("pages", () => {
     expect(page).toContain("dismissed");
     expect(page).toContain("Covered later.");
   });
+  it("verifies a landing from the intent page once main holds the accepted commit", async () => {
+    const slug = `h${crypto.randomUUID().slice(0, 6)}`;
+    await exports.default.fetch("https://armature.test/projects", form({ slug }));
+    const made = await exports.default.fetch(`https://armature.test/p/${slug}/intents`, form({ title: "T", body: "B" }));
+    const intentId = made.headers.get("location")!.split("/").pop()!;
+    const { armature } = (await import("../src/index")).buildApp(env);
+    const fake = (globalThis as { __fakeArtifacts?: import("./fake-artifacts").FakeArtifacts }).__fakeArtifacts!;
+    await armature.closeChallenge(intentId);
+    const { fork } = await armature.requestFork(intentId, "builder-a");
+    const commit = fake.commit(fork.fork_repo, "main", { "a.ts": "1" });
+    const { proposal } = await armature.fileProposal({ intentId, limb: "builder-a", commit, paths: ["a.ts"], evidence: "ok" });
+    await armature.accept(intentId, proposal.id);
+    const page = await (await exports.default.fetch(`https://armature.test/i/${intentId}`, { headers: seat })).text();
+    expect(page).toContain(`<form class="inline" method="post" action="/i/${intentId}/verify"><button>Verify landing</button></form>`);
+    const early = await exports.default.fetch(`https://armature.test/i/${intentId}/verify`, form({}));
+    expect(early.status).toBe(409);
+    expect(await early.text()).toContain("main does not contain the accepted commit yet");
+    fake.copyCommit(fork.fork_repo, commit, slug, "main");
+    const verified = await exports.default.fetch(`https://armature.test/i/${intentId}/verify`, form({}));
+    expect(verified.status).toBe(302);
+    const after = await (await exports.default.fetch(`https://armature.test/i/${intentId}`, { headers: seat })).text();
+    expect(after).toContain(`landed ${commit.slice(0, 12)}`);
+    expect(after).not.toContain("Verify landing");
+  });
   it("refuses an illegal move with an escaped 409 page", async () => {
     const slug = `g${crypto.randomUUID().slice(0, 6)}`;
     await exports.default.fetch("https://armature.test/projects", form({ slug }));

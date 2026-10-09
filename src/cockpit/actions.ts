@@ -41,4 +41,5 @@ export const actions = {
   async shelve(a: Armature, id: string): Promise<Response> { await a.shelve(id); return redirect(`/i/${id}`); },
   async accept(a: Armature, id: string, f: FormData): Promise<Response> { await a.accept(id, field(f, "proposal_id")); return redirect(`/i/${id}`); },
   async reject(a: Armature, id: string, f: FormData): Promise<Response> { await a.reject(field(f, "proposal_id")); return redirect(`/i/${id}`); },
+  async verify(a: Armature, id: string): Promise<Response> { await a.verifyLanding(id); return redirect(`/i/${id}`); },
 };

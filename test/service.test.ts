@@ -144,6 +144,36 @@ describe("accept and land", () => {
     await svc.closeChallenge(other.id);
     expect(await svc.markLanded(project.slug, stray, [{ id: stray, parents: ["f".repeat(40)] }], false)).toBe("stray");
   });
+  it("lands on a later push that does not list the accepted commit but descends from it", async () => {
+    const { project, intent, fork, commit, proposal } = await ready();
+    await svc.accept(intent.id, proposal.id);
+    fake.copyCommit(fork.fork_repo, commit, project.slug, "main");
+    const memoir = fake.commit(project.slug, "main", { "memoir/0001-ship/intent.md": "..." });
+    const later = fake.commit(project.slug, "main", { "z": "1" });
+    expect(await svc.markLanded(project.slug, later, [{ id: later, parents: [memoir] }], false)).toBe("landed");
+    const after = await svc.intentView(intent.id);
+    expect(after!.intent.state).toBe("landed");
+    expect(after!.intent.commit_ref).toBe(later);
+  });
+  it("verifies a landing against main on request, and refuses until main has the commit", async () => {
+    const { project, intent, fork, commit, proposal } = await ready();
+    await expect(svc.verifyLanding(intent.id)).rejects.toThrow("intent cannot move closed -> landed");
+    await svc.accept(intent.id, proposal.id);
+    await expect(svc.verifyLanding(intent.id)).rejects.toThrow("main does not contain the accepted commit yet");
+    const repo = fake.repos.get(project.slug)!;
+    const root = repo.heads.get("main")!;
+    repo.heads.delete("main");
+    await expect(svc.verifyLanding(intent.id)).rejects.toThrow("the project repo has no main yet");
+    repo.heads.set("main", root);
+    expect((await svc.intentView(intent.id))!.intent.state).toBe("accepted");
+    fake.copyCommit(fork.fork_repo, commit, project.slug, "main");
+    const landing = fake.commit(project.slug, "main", { "memoir/0001-ship/intent.md": "..." });
+    const landed = await svc.verifyLanding(intent.id);
+    expect(landed.state).toBe("landed");
+    expect(landed.commit_ref).toBe(landing);
+    const events = await svc.changesSince(project.slug, 0);
+    expect(events.at(-1)).toMatchObject({ kind: "intent.landed", ref_id: intent.id, detail: landing });
+  });
   async function acceptedIntent(project: { id: string }, title: string, limb: string, file: string) {
     const intent = await svc.createIntent(project.id, title, "Body.");
     await svc.closeChallenge(intent.id);
