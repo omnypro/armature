@@ -178,8 +178,8 @@ Rules:
 Overlap: when a proposal is filed, Armature intersects its `paths` with every
 other open proposal in the project. A non-empty intersection files one
 overlap poke on each affected intent naming the two proposals and the shared
-paths. The pilot decides which lands; the other limb rebases its fork and
-files a new proposal, which supersedes the old one.
+paths. The pilot decides which lands; the other limb rebases its fork on the
+project's new main and files a new proposal on the next intent.
 
 ### Fork
 

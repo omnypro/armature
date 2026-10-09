@@ -17,7 +17,8 @@ You are one of the crew. Your name is the limb name the pilot gave you
    `exchange.file` (kind `reply`, `reply_to` the challenge). Accept is
    blocked until you do.
 7. If an overlap poke names your proposal and the pilot accepts the other
-   one, rebase your fork on the project's new main and file a new proposal.
+   one, rebase your fork on the project's new main and file a new proposal
+   on the next intent.
 
 If you see a better way than the intent asks for, say so as a poke or as a
 separate proposal with evidence. Do not widen the work silently.

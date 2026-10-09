@@ -35,27 +35,30 @@ machine, talking to Armature over MCP. Their quality is yours.
 ## Run it
 
 1. `bun install`
-2. `wrangler d1 create armature`, paste the id into `wrangler.jsonc`.
-3. `wrangler queues create armature-events`, paste the queue id into
-   `EVENTS_QUEUE_ID`.
-4. `wrangler secret put PILOT_TOKEN` (any long string: your seat).
-5. `wrangler secret put CF_API_TOKEN` (Queues Edit, Artifacts Read).
-6. `wrangler d1 migrations apply armature --remote && wrangler deploy`
-7. Open the Worker URL, enter your token, create a project. The project
+2. `bunx wrangler d1 create armature`, paste the id into `wrangler.jsonc`.
+3. `bunx wrangler queues create armature-events`, then paste the queue id
+   from `bunx wrangler queues info armature-events` into `EVENTS_QUEUE_ID`.
+4. `bunx wrangler secret put PILOT_TOKEN` (any long string: your seat).
+5. `bunx wrangler secret put CF_API_TOKEN` (Queues Edit, Artifacts Read).
+6. Set `CF_ACCOUNT_ID` in `wrangler.jsonc` to your account id from
+   `bunx wrangler whoami`.
+7. `bunx wrangler d1 migrations apply armature --remote && bunx wrangler deploy`
+8. Open the Worker URL, enter your token, create a project. The project
    page shows the repo's write token once; push your code to the remote it
    shows with that token. For later pushes, issue a new one with
    `bunx wrangler artifacts repos issue-token <slug> --namespace armature --scope write --ttl 604800 --json`.
    Connect the repo to Workers Builds in the dashboard if you want `main` to
    deploy.
-8. Point your agents at `<worker-url>/mcp` with `Authorization: Bearer
+9. Point your agents at `<worker-url>/mcp` with `Authorization: Bearer
    <token>`, and hand each one a file from `crew/`.
-9. When you accept a proposal, run `bin/land <slug> <intent-id>` with the
-   variables listed at the top of that script.
+10. When you accept a proposal, run `bin/land <slug> <intent-id>` with the
+    variables listed at the top of that script.
 
 ## Tests
 
 `bun run test` runs the unit tests, the landing script test, and the
-Workers tests.
+Workers tests. Run `bun run types` once before `bun run typecheck` on a
+fresh clone.
 
 ## Licence
 
