@@ -14,20 +14,26 @@ fork and files proposals with evidence. The pilot reads the diff, argues
 back, steers mid-flight, and decides what lands. Everything said along the
 way is kept, in the repository, as the project's memoir.
 
+Two words carry the whole thing. The **blueprint** is what the crew follows
+while the project is being built: the vision and the chapters in flight. The
+**memoir** is what remains in the repository once chapters land: the
+documentation of how it was built and why, written as it happened. The
+blueprint is live; the memoir is what you take with you.
+
 Three claims, in the order the rubric scores them:
 
 - **Intent before code.** The unit of work is an intent, not a pull request,
   and the first thing that happens to it is a challenge, not a build.
-- **The crew is one brain because the repo carries its memory.** No limb
-  holds its own version of the truth. A limb starting chapter five reads
-  chapters one to four first. That is how it avoids asking what chapter two
-  already answered.
+- **One blueprint, one memoir.** The crew follows the pilot's blueprint and
+  reads the memoir before it starts. No limb holds its own version of the
+  truth. A limb starting chapter five reads chapters one to four first. That
+  is how it avoids asking what chapter two already answered.
 - **The pilot is a peer, not a client.** The challenge runs both ways. The
   pilot holds a write token to every fork, reads diffs, and can pick up the
   work by hand. The platform assumes someone who knows what they are doing.
 
 Ethos, from Omnyist Productions, verbatim in the README: "we build stuff for
-ourselves and hope you like it too." Tagline: software memoirs.
+ourselves and hope you like it too." Tagline: strong software requires empathy.
 
 Armature is Armature's first project. Its own memoir starts with the vision
 written on 2026-10-09 and is the demo.
@@ -36,7 +42,8 @@ written on 2026-10-09 and is the demo.
 
 For a builder who has the vision and reads code, and wants a crew that pushes
 back. Single seat: one pilot, one namespace, one cockpit. Another builder
-runs their own Armature; there is no shared hangar.
+runs their own Armature; there is no shared hangar. We empower solo-builders
+to design and develop to the greatest of their own ability.
 
 Not for someone who wants to type a sentence and receive a product. The
 cockpit shows diffs, not summaries. The README says this in one sentence.
@@ -48,7 +55,9 @@ A weak crew gives a thin memoir, and the platform cannot fix that.
 ## 3. The loop
 
 1. **Vision.** The pilot writes the project's vision once, in their words,
-   any length. The crew never rewrites it.
+   any length. The crew understands, but uses their own expertise to surprise
+   and delight the pilot. The crew aren't simply workers, they bring a
+   shared experience to the team.
 2. **Intent.** The pilot writes a chapter: what they want next, any length.
    Intents are numbered in order; the sequence is the plot.
 3. **Challenge.** The crew files questions on the intent. The pilot answers.
@@ -75,9 +84,10 @@ A weak crew gives a thin memoir, and the platform cannot fix that.
 
 ## 4. Objects
 
-Live state is in D1 while an intent is in flight. A landed chapter is
-exported into the project repository as files, which is the memoir. The
-repository is the durable copy; D1 is the index and the in-flight record.
+The blueprint lives in D1: the vision and every intent in flight. A landed
+chapter is exported into the project repository as files, which is the
+memoir. The repository is the durable copy; D1 is the index and the
+in-flight record.
 
 ### Pilot
 
@@ -170,15 +180,15 @@ Recorded on the intent as the limb's workspace: `limb`, `fork_repo`,
 `fork_remote`, `base_commit`, `created_at`, `last_push_at`. One fork per
 limb per intent. The fork name is `<project>--<seq>--<limb>`.
 
-## 5. The memoir in the repository
+## 5. The blueprint and the memoir in the repository
 
 Exported at landing by `bin/land` through the `memoir.export` MCP call. The
 export is deterministic from the D1 record, so re-running it is harmless.
 
 ```
-ARMATURE.md
+ARMATURE.md                  # doctrine: the pilot's standing rules for the crew
+BLUEPRINT.md                 # the vision, pilot's words, as last exported
 memoir/
-  vision.md                  # current vision, pilot's words
   0001-<slug>/
     intent.md                # frontmatter: seq, title, state, dates, commit
     exchanges.md             # every exchange in order, with direction, kind,
@@ -186,8 +196,9 @@ memoir/
     proposals.md             # every proposal, its evidence, its fate
 ```
 
-`vision.md` is re-exported on every landing so edits to the vision travel
-with the next chapter. Chapters are append-only; a landed chapter is never
+`BLUEPRINT.md` is re-exported on every landing so edits to the vision travel
+with the next chapter. A limb that clones the repo reads the rules, the
+drawing and the chapters before it touches anything. Chapters are append-only; a landed chapter is never
 rewritten. Shelved intents are exported too, marked shelved, on the next
 landing.
 
@@ -213,6 +224,13 @@ to be readable by any agent.
   pokes tagged `heads_up` (something the pilot will want to know now) or
   `you_should_know` (something that changes a decision). One sentence, with
   the evidence attached. No lectures.
+
+The crew are not workers. Each role brings its own expertise inside the
+intent: a builder that sees a better way files it as a proposal or a poke
+with evidence, never as silent scope creep; a challenger asks the question
+the pilot did not think of. The aim, in the pilot's words, is to surprise
+and delight the pilot. The bar for every prompt is that the pilot ends up
+with something bigger than what they asked for, and can see why.
 
 Tone bar for the whole crew, from the pilot: competent and dry. Never cute,
 never nagging.
@@ -257,13 +275,13 @@ All tools take and return JSON. Errors return `isError` with a plain message.
 
 | tool | who calls it | does |
 |---|---|---|
-| `project.get(slug)` | any limb | vision, doctrine text, intents summary, memoir chapter index |
+| `project.get(slug)` | any limb | the blueprint (vision and intents in flight), doctrine text, memoir chapter index |
 | `intent.list(slug, state?)` | any limb | intents in order |
 | `intent.get(id)` | any limb | full record: body, exchanges, proposals, forks, overlaps |
 | `exchange.file(intent_id, kind, body, tag?, proposal_id?, reply_to?, limb?)` | crew | file `question`, `poke`, or `reply`; direction set by Armature from the kind |
 | `fork.request(intent_id, limb)` | builder | fork the project repo, mint a write token, record the fork, create its push subscription best effort; returns `remote`, `token`, `base_commit` |
 | `proposal.file(intent_id, limb, commit, paths, evidence)` | builder | record the proposal, run the overlap check |
-| `memoir.export(intent_id)` | `bin/land` | the chapter's three files as text, plus `vision.md` |
+| `memoir.export(intent_id)` | `bin/land` | the chapter's three files as text, plus `BLUEPRINT.md` |
 | `changes.since(slug, cursor)` | watcher | events after the cursor: intent state changes, exchanges filed, proposals filed, overlaps found, landings |
 
 Pilot actions are HTTP form posts on the cockpit, not MCP: create project,
@@ -275,8 +293,8 @@ reject a proposal, shelve an intent.
 
 Two pages and a login.
 
-**Project page.** The vision at the top. Then one table, rows are intents in
-order, columns: seq, title, state, unanswered questions, open pokes, limbs on
+**Project page.** The blueprint: the vision at the top, then one table, rows
+are intents in order, columns: seq, title, state, unanswered questions, open pokes, limbs on
 forks, open proposals, overlaps, landed commit. Nothing summarised; counts
 link to the rows that make them.
 
@@ -299,7 +317,7 @@ repo, run on the pilot's machine or by a limb. It:
 2. fetches the accepted commit from the fork;
 3. checks the project's `main` is an ancestor of the accepted commit, and
    refuses with instructions to rebase otherwise;
-4. calls `memoir.export` and writes `memoir/vision.md` and
+4. calls `memoir.export` and writes `BLUEPRINT.md` and
    `memoir/NNNN-slug/*`;
 5. commits them on top of the accepted commit with the message
    `Land intent NNNN: <title>.`;
@@ -343,6 +361,7 @@ armature/
   LICENSE                      MIT, Omnyist Productions, LLC
   README.md                    ethos line, what it is, who it is not for, run instructions
   ARMATURE.md                  Armature's own doctrine
+  BLUEPRINT.md                 Armature's own vision, exported
   wrangler.jsonc
   package.json
   src/
@@ -396,7 +415,8 @@ Listed so they can be vetoed in one line each.
 - Landing done by a script on the pilot's machine, because the binding
   cannot push.
 - Role names in the product are plain: challenger, builder, watcher.
-- Name: Armature. Tagline: software memoirs.
+- Name: Armature. The blueprint and memoir vocabulary, and the tagline, are
+  the pilot's, not the arbiter's.
 
 ## 16. Cost
 
