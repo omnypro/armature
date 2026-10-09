@@ -1,7 +1,10 @@
 // src/index.ts
+import { createMcpHandler } from "agents/mcp/server";
 import { realArtifacts } from "./artifacts";
 import { Db } from "./db/db";
 import type { Env } from "./env";
+import { isPilot } from "./auth";
+import { createServer } from "./mcp/server";
 import { route } from "./router";
 import { Armature } from "./service";
 
@@ -13,7 +16,13 @@ export const buildApp = (env: Env): { armature: Armature } => ({
 });
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname === "/mcp") {
+      if (!isPilot(request, env)) return new Response(null, { status: 401 });
+      const { armature } = buildApp(env);
+      return createMcpHandler(() => createServer(armature), { route: "/mcp" })(request, env, ctx);
+    }
     return route(request, env, buildApp(env).armature);
   },
   async queue(batch: MessageBatch, _env: Env): Promise<void> {
