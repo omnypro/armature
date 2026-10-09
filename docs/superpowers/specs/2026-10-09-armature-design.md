@@ -141,6 +141,7 @@ One shape for everything said about an intent, in either direction.
 | `body` | |
 | `reply_to` | for `reply`: the exchange being answered |
 | `taken` | pokes only, set by the pilot: `true`, `false`, or null |
+| `private` | boolean, default false; a private exchange stays in D1 and is withheld from the export |
 | `created_at` | |
 
 Rules:
@@ -154,6 +155,12 @@ Rules:
   `reply`.
 - Overlap pokes are filed by Armature itself with `author: armature` and
   `tag: heads_up` (see Proposals). All other pokes come from the crew.
+- The pilot can mark any exchange private, their own or the crew's, at any
+  time before the chapter lands. Private exchanges stay in the blueprint and
+  never reach the memoir. The vision and the intents are always public: the
+  cockpit says so above those fields, because the memoir ships in the repo
+  and the repo is the submission. The pilot writes them as they would write
+  a README. The talks stay in the cockpit; what lands is what is submitted.
 
 ### Proposal
 
@@ -195,6 +202,11 @@ memoir/
                              # author, tag, answer or "unanswered"
     proposals.md             # every proposal, its evidence, its fate
 ```
+
+Private exchanges are withheld from `exchanges.md`. In their place the
+chapter records one line, "N exchanges withheld by the pilot", so the memoir
+is honest about what it does not contain. Replies to a withheld exchange are
+withheld with it.
 
 `BLUEPRINT.md` is re-exported on every landing so edits to the vision travel
 with the next chapter. A limb that clones the repo reads the rules, the
@@ -303,7 +315,9 @@ kind, author and tag, replies nested one level. Then forks: limb, base,
 commits since base, touched paths, last push, open steers. Then proposals:
 limb, commit, paths, evidence, the diff per path, overlaps with other
 proposals, and the accept and reject controls. Pilot controls sit inline:
-reply, take or dismiss, challenge, steer, close, accept, reject, shelve.
+reply, take or dismiss, challenge, steer, mark private, close, accept,
+reject, shelve. The vision and intent fields carry the line "published with
+the chapter" above them.
 
 The cockpit assumes the pilot reads code. The diff is the proposal.
 
