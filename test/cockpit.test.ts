@@ -128,6 +128,27 @@ describe("pages", () => {
     expect(logged).toHaveBeenCalledTimes(2);
     logged.mockRestore();
   });
+  it("gives replies and challenges a textarea, keeps steers and reasons on one line, and needs a reason to dismiss", async () => {
+    const slug = `j${crypto.randomUUID().slice(0, 6)}`;
+    await exports.default.fetch("https://armature.test/projects", form({ slug }));
+    const made = await exports.default.fetch(`https://armature.test/p/${slug}/intents`, form({ title: "T", body: "B" }));
+    const intentId = made.headers.get("location")!.split("/").pop()!;
+    const { armature } = (await import("../src/index")).buildApp(env);
+    const fake = (globalThis as { __fakeArtifacts?: import("./fake-artifacts").FakeArtifacts }).__fakeArtifacts!;
+    await armature.fileExchange({ intentId, kind: "poke", tag: "heads_up", author: "watcher", body: "Look." });
+    await armature.closeChallenge(intentId);
+    const { fork } = await armature.requestFork(intentId, "builder-a");
+    const commit = fake.commit(fork.fork_repo, "main", { "a.ts": "1" });
+    await armature.fileProposal({ intentId, limb: "builder-a", commit, paths: ["a.ts"], evidence: "ok" });
+    const page = await (await exports.default.fetch(`https://armature.test/i/${intentId}`, { headers: seat })).text();
+    expect(page).toContain(`<textarea name="body" rows="4" placeholder="reply"></textarea> <button>Reply</button>`);
+    expect(page).toContain(`<textarea name="body" rows="4" placeholder="challenge this proposal"></textarea> <button>Challenge</button>`);
+    expect(page).toContain(`<input type="text" name="body" placeholder="steer this limb"> <button>Steer</button>`);
+    expect(page).toContain(`<input type="text" name="reason" placeholder="reason (optional)"> <button>Take</button>`);
+    expect(page).toContain(`<input type="text" name="reason" placeholder="reason" required> <button>Dismiss</button>`);
+    const login = await (await exports.default.fetch("https://armature.test/login")).text();
+    expect(login).toContain(`<input type="password" name="token" placeholder="pilot token" autofocus>`);
+  });
   it("refuses an illegal move with an escaped 409 page", async () => {
     const slug = `g${crypto.randomUUID().slice(0, 6)}`;
     await exports.default.fetch("https://armature.test/projects", form({ slug }));

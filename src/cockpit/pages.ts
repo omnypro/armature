@@ -4,7 +4,7 @@ import type { Exchange, Project } from "../types";
 import { PUBLISHED, esc, layout, verbatim } from "./html";
 
 export const loginPage = (): string =>
-  layout("Seat", `<h1>Take the seat</h1><form method="post" action="/login"><input type="text" name="token" placeholder="pilot token" autofocus> <button>Enter</button></form>`);
+  layout("Seat", `<h1>Take the seat</h1><form method="post" action="/login"><input type="password" name="token" placeholder="pilot token" autofocus> <button>Enter</button></form>`);
 
 export const projectsPage = (projects: Project[]): string =>
   layout("Projects", `<h1>Projects</h1><ul>${projects.map((p) => `<li><a href="/p/${esc(p.slug)}">${esc(p.slug)}</a></li>`).join("")}</ul>
@@ -28,10 +28,10 @@ const exchangeHtml = (e: Exchange, all: Exchange[], intentId: string, depth = 0)
   const replies = all.filter((r) => r.kind === "reply" && r.reply_to === e.id);
   const head = e.kind === "poke" ? `poke (${esc(e.tag ?? "")})` : e.kind;
   const verdict = e.kind === "poke" && e.taken === null
-    ? ["yes", "no"].map((taken) => `<form class="inline" method="post" action="/i/${intentId}/verdict"><input type="hidden" name="exchange_id" value="${e.id}"><input type="hidden" name="taken" value="${taken}"><input type="text" name="reason" placeholder="reason (optional)"> <button>${taken === "yes" ? "Take" : "Dismiss"}</button></form>`).join(" ")
+    ? ["yes", "no"].map((taken) => `<form class="inline" method="post" action="/i/${intentId}/verdict"><input type="hidden" name="exchange_id" value="${e.id}"><input type="hidden" name="taken" value="${taken}">${taken === "yes" ? `<input type="text" name="reason" placeholder="reason (optional)">` : `<input type="text" name="reason" placeholder="reason" required>`} <button>${taken === "yes" ? "Take" : "Dismiss"}</button></form>`).join(" ")
     : e.kind === "poke" ? `<span class="mute">${e.taken ? "taken" : "dismissed"}</span>` : "";
   const privacy = `<form class="inline" method="post" action="/i/${intentId}/private"><input type="hidden" name="exchange_id" value="${e.id}"><button name="private" value="${e.private ? "no" : "yes"}">${e.private ? "make public" : "make private"}</button></form>`;
-  const reply = `<form class="inline" method="post" action="/i/${intentId}/reply"><input type="hidden" name="reply_to" value="${e.id}"><input type="text" name="body" placeholder="reply"> <button>Reply</button></form>`;
+  const reply = `<form class="inline" method="post" action="/i/${intentId}/reply"><input type="hidden" name="reply_to" value="${e.id}"><textarea name="body" rows="4" placeholder="reply"></textarea> <button>Reply</button></form>`;
   return `<div class="ex ${e.direction} ${e.kind}${e.private ? " private" : ""}${depth ? " reply" : ""}"><p class="note">${head} · ${esc(e.author)} · ${e.direction === "to_pilot" ? "to the pilot" : e.limb ? `to ${esc(e.limb)}` : "to the crew"} · ${e.created_at}${e.private ? " · private" : ""}</p>${verbatim(e.body)}<p>${verdict} ${privacy} ${depth < 2 ? reply : ""}</p>${replies.map((r) => exchangeHtml(r, all, intentId, depth + 1)).join("")}</div>`;
 };
 
@@ -45,7 +45,7 @@ export const intentPage = (v: IntentView): string => {
 <p class="note">paths: ${p.paths.map(esc).join(", ")}${overlaps.length ? ` · <strong>overlaps ${overlaps.map((o) => o.paths.join(", ")).map(esc).join("; ")}</strong>` : ""}${blocking.length ? ` · <strong>${blocking.length} challenge${blocking.length === 1 ? "" : "s"} awaiting ${esc(p.limb)}</strong>` : ""}</p>
 <h4>Evidence</h4>${verbatim(p.evidence)}
 ${diffs.map((d) => `<h4>${esc(d.path)}</h4><pre class="diff">${esc(d.diff)}</pre>`).join("")}
-${p.state === "open" ? `<form class="inline" method="post" action="/i/${i.id}/challenge"><input type="hidden" name="proposal_id" value="${p.id}"><input type="text" name="body" placeholder="challenge this proposal"> <button>Challenge</button></form>
+${p.state === "open" ? `<form class="inline" method="post" action="/i/${i.id}/challenge"><input type="hidden" name="proposal_id" value="${p.id}"><textarea name="body" rows="4" placeholder="challenge this proposal"></textarea> <button>Challenge</button></form>
 <form class="inline" method="post" action="/i/${i.id}/accept"><input type="hidden" name="proposal_id" value="${p.id}"><button ${i.state !== "closed" || blocking.length ? "disabled" : ""}>Accept</button></form>
 <form class="inline" method="post" action="/i/${i.id}/reject"><input type="hidden" name="proposal_id" value="${p.id}"><button>Reject</button></form>` : ""}`).join("");
   return layout(i.title, `<p class="note"><a href="/p/${esc(v.project.slug)}">${esc(v.project.slug)}</a> · chapter ${i.seq} · ${i.state}${i.commit_ref ? ` · landed ${i.commit_ref.slice(0, 12)}` : ""}</p>
