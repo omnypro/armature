@@ -5,15 +5,16 @@ import { Db } from "./db/db";
 import type { Env } from "./env";
 import { isPilot } from "./auth";
 import { createServer } from "./mcp/server";
+import { consume } from "./queue";
 import { route } from "./router";
 import { Armature } from "./service";
+import { subscribeRepoPushes } from "./subscriptions";
 
-// Subscriptions are wired in Task 13; until then project and fork pushes are not subscribed.
-const noSubscription = async (_repo: string): Promise<string | null> => null;
-
-export const buildApp = (env: Env): { armature: Armature } => ({
-  armature: new Armature(new Db(env.DB), env.ARTIFACTS ? realArtifacts(env.ARTIFACTS) : (globalThis as { __fakeArtifacts?: never }).__fakeArtifacts!, noSubscription, env.ARTIFACTS_NAMESPACE),
-});
+export const buildApp = (env: Env): { armature: Armature; db: Db } => {
+  const db = new Db(env.DB);
+  const artifacts = env.ARTIFACTS ? realArtifacts(env.ARTIFACTS) : (globalThis as { __fakeArtifacts?: never }).__fakeArtifacts!;
+  return { db, armature: new Armature(db, artifacts, (repo) => subscribeRepoPushes(env, repo), env.ARTIFACTS_NAMESPACE) };
+};
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -25,7 +26,8 @@ export default {
     }
     return route(request, env, buildApp(env).armature);
   },
-  async queue(batch: MessageBatch, _env: Env): Promise<void> {
-    for (const message of batch.messages) message.ack();
+  async queue(batch: MessageBatch, env: Env, _ctx: ExecutionContext): Promise<void> {
+    const { armature, db } = buildApp(env);
+    await consume(batch, armature, db);
   },
 } satisfies ExportedHandler<Env>;
