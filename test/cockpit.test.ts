@@ -28,8 +28,12 @@ describe("pages", () => {
   it("creates a project, writes the vision, files an intent, and shows the table", async () => {
     const slug = `c${crypto.randomUUID().slice(0, 6)}`;
     const created = await exports.default.fetch("https://armature.test/projects", form({ slug }));
-    expect(created.status).toBe(302);
-    expect(created.headers.get("location")).toBe(`/p/${slug}`);
+    expect(created.status).toBe(200);
+    const shown = await created.text();
+    expect(shown).toContain(`Write token for this repo, shown once: <code>tok-create-${slug}</code>.`);
+    expect(shown).toContain(`Push your code with <code>git push https://x:tok-create-${slug}@fake.artifacts/armature/${slug}.git main</code>.`);
+    expect(shown.indexOf("Write token")).toBeLessThan(shown.indexOf("<h2>Blueprint</h2>"));
+    expect(shown.split("<!doctype html>").length).toBe(2);
     await exports.default.fetch(`https://armature.test/p/${slug}/vision`, form({ vision: "A <b>bold</b> plan." }));
     const made = await exports.default.fetch(`https://armature.test/p/${slug}/intents`, form({ title: "First", body: "Do it." }));
     const intentUrl = made.headers.get("location")!;
@@ -39,6 +43,7 @@ describe("pages", () => {
     expect(page).toContain("published with the chapter");
     expect(page).toContain(">First<");
     expect(page).toContain("open");
+    expect(page).not.toContain("tok-create-");
     expect(page.split("<!doctype html>").length).toBe(2);
   });
   it("shows unanswered questions, lets the pilot reply, close, and mark private", async () => {

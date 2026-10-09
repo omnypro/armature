@@ -23,8 +23,9 @@ const routes: Route[] = [
   } },
   { method: "GET", pattern: /^\/$/, handler: async (a) => html("Projects", projectsPage(await a.listProjects())) },
   { method: "POST", pattern: /^\/projects$/, handler: async (a, _p, request) => {
-    const project = await a.createProject(String((await request.formData()).get("slug") ?? "").trim());
-    return redirect(`/p/${project.slug}`);
+    const { project, token } = await a.createProject(String((await request.formData()).get("slug") ?? "").trim());
+    const view = await a.projectView(project.slug);
+    return html(project.slug, projectPage(view!, token));
   } },
   { method: "GET", pattern: /^\/p\/([^/]+)$/, handler: async (a, [slug]) => { const v = await a.projectView(slug); return v ? html(slug, projectPage(v)) : new Response("Not found", { status: 404 }); } },
   { method: "POST", pattern: /^\/p\/([^/]+)\/vision$/, handler: async (a, [slug], request) => actions.vision(a, slug, await request.formData()) },

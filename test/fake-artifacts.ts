@@ -12,7 +12,7 @@ export class FakeArtifacts implements ArtifactsPort {
   tokens: { repo: string; scope: string }[] = [];
 
   async create(name: string): Promise<RepoRef> {
-    const ref = { name, remote: `https://fake.artifacts/armature/${name}.git`, defaultBranch: "main" };
+    const ref = { name, remote: `https://fake.artifacts/armature/${name}.git`, defaultBranch: "main", token: `tok-create-${name}` };
     const root: Commit = { hash: fakeHash(), parent: null, files: new Map() };
     this.repos.set(name, { ref, heads: new Map([["main", root.hash]]), commits: new Map([[root.hash, root]]) });
     return ref;
@@ -20,7 +20,7 @@ export class FakeArtifacts implements ArtifactsPort {
   async fork(source: string, target: string): Promise<RepoRef> {
     const src = this.repos.get(source);
     if (!src) throw new Error(`no repo ${source}`);
-    const ref = { name: target, remote: `https://fake.artifacts/armature/${target}.git`, defaultBranch: "main" };
+    const ref = { name: target, remote: `https://fake.artifacts/armature/${target}.git`, defaultBranch: "main", token: `tok-fork-${target}` };
     this.repos.set(target, { ref, heads: new Map(src.heads), commits: new Map(src.commits) });
     return ref;
   }

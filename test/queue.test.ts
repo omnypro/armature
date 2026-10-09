@@ -16,7 +16,7 @@ describe("queue consumer", () => {
     const { armature } = buildApp(env);
     const fake = (globalThis as { __fakeArtifacts?: import("./fake-artifacts").FakeArtifacts }).__fakeArtifacts!;
     const slug = `q${crypto.randomUUID().slice(0, 6)}`;
-    const project = await armature.createProject(slug);
+    const { project } = await armature.createProject(slug);
     const intent = await armature.createIntent(project.id, "Land", "It.");
     await armature.closeChallenge(intent.id);
     const { fork } = await armature.requestFork(intent.id, "builder-a");

@@ -20,7 +20,8 @@ const slug = () => `p${crypto.randomUUID().slice(0, 8)}`;
 describe("projects and intents", () => {
   it("creates the repo, subscribes to its pushes, and reads the doctrine from main", async () => {
     const s = slug();
-    const project = await svc.createProject(s);
+    const { project, token } = await svc.createProject(s);
+    expect(token).toBe(`tok-create-${s}`);
     expect(fake.repos.has(s)).toBe(true);
     expect(subscribed).toEqual([s]);
     expect(project.subscription_id).toBe(`sub-${s}`);
@@ -32,7 +33,7 @@ describe("projects and intents", () => {
 
 describe("exchanges", () => {
   it("sets direction from kind and records an event", async () => {
-    const project = await svc.createProject(slug());
+    const { project } = await svc.createProject(slug());
     const intent = await svc.createIntent(project.id, "T", "B");
     const q = await svc.fileExchange({ intentId: intent.id, kind: "question", body: "Why?", author: "challenger" });
     expect(q.direction).toBe("to_pilot");
@@ -42,7 +43,7 @@ describe("exchanges", () => {
     expect(events.map((e) => e.kind)).toEqual(["project.created", "intent.created", "exchange.filed", "exchange.filed"]);
   });
   it("dismissing a poke with a reason files the reason as a reply", async () => {
-    const project = await svc.createProject(slug());
+    const { project } = await svc.createProject(slug());
     const intent = await svc.createIntent(project.id, "T", "B");
     const poke = await svc.fileExchange({ intentId: intent.id, kind: "poke", tag: "heads_up", body: "Missed a test.", author: "watcher" });
     await svc.setTaken(poke.id, false, "Covered in the next chapter.");
@@ -55,7 +56,7 @@ describe("exchanges", () => {
 
 describe("closing", () => {
   it("closes with questions unanswered and keeps them listed", async () => {
-    const project = await svc.createProject(slug());
+    const { project } = await svc.createProject(slug());
     const intent = await svc.createIntent(project.id, "T", "B");
     await svc.fileExchange({ intentId: intent.id, kind: "question", body: "Really?", author: "challenger" });
     const closed = await svc.closeChallenge(intent.id);
@@ -67,14 +68,14 @@ describe("closing", () => {
 
 describe("forks and proposals", () => {
   it("forks per limb, mints a write token, and flags overlaps with a poke from armature", async () => {
-    const project = await svc.createProject(slug());
+    const { project } = await svc.createProject(slug());
     const intent = await svc.createIntent(project.id, "T", "B");
     await svc.closeChallenge(intent.id);
     const a = await svc.requestFork(intent.id, "builder-a");
     const b = await svc.requestFork(intent.id, "builder-b");
     expect(a.fork.fork_repo).toBe(`${project.slug}--0001--builder-a`);
-    expect(a.token.startsWith("tok-")).toBe(true);
-    expect(fake.tokens.at(-1)).toEqual({ repo: b.fork.fork_repo, scope: "write" });
+    expect(a.token).toBe(`tok-fork-${a.fork.fork_repo}`);
+    expect(b.token).toBe(`tok-fork-${b.fork.fork_repo}`);
     const ca = fake.commit(a.fork.fork_repo, "main", { "src/x.ts": "a" });
     const cb = fake.commit(b.fork.fork_repo, "main", { "src/x.ts": "b", "src/y.ts": "b" });
     const first = await svc.fileProposal({ intentId: intent.id, limb: "builder-a", commit: ca, paths: ["src/x.ts"], evidence: "ok" });
@@ -86,8 +87,24 @@ describe("forks and proposals", () => {
     expect(poke?.body).toBe("builder-b and builder-a both touch src/x.ts; one of these proposals will need a rebase.");
     expect(poke?.tag).toBe("heads_up");
   });
+  it("hands out the fork's creation token, and mints one for an existing fork or when none came back", async () => {
+    const { project } = await svc.createProject(slug());
+    const intent = await svc.createIntent(project.id, "T", "B");
+    await svc.closeChallenge(intent.id);
+    const first = await svc.requestFork(intent.id, "builder-a");
+    expect(first.token).toBe(`tok-fork-${first.fork.fork_repo}`);
+    expect(fake.tokens).toEqual([]);
+    const again = await svc.requestFork(intent.id, "builder-a");
+    expect(again.fork.id).toBe(first.fork.id);
+    expect(again.token).toBe(`tok-${first.fork.fork_repo}-write-1`);
+    const fork = fake.fork.bind(fake);
+    fake.fork = async (source, target) => ({ ...(await fork(source, target)), token: null });
+    const bare = await svc.requestFork(intent.id, "builder-b");
+    expect(bare.token).toBe(`tok-${bare.fork.fork_repo}-write-2`);
+    expect(fake.tokens).toEqual([{ repo: first.fork.fork_repo, scope: "write" }, { repo: bare.fork.fork_repo, scope: "write" }]);
+  });
   it("refuses a fork before the challenge is closed", async () => {
-    const project = await svc.createProject(slug());
+    const { project } = await svc.createProject(slug());
     const intent = await svc.createIntent(project.id, "T", "B");
     await expect(svc.requestFork(intent.id, "builder-a")).rejects.toThrow(ServiceError);
   });
@@ -95,7 +112,7 @@ describe("forks and proposals", () => {
 
 describe("accept and land", () => {
   async function ready() {
-    const project = await svc.createProject(slug());
+    const { project } = await svc.createProject(slug());
     const intent = await svc.createIntent(project.id, "Ship", "It.");
     await svc.closeChallenge(intent.id);
     const { fork } = await svc.requestFork(intent.id, "builder-a");
@@ -137,7 +154,7 @@ describe("accept and land", () => {
     return { intent, fork, commit };
   }
   it("lands every accepted intent that one push carries", async () => {
-    const project = await svc.createProject(slug());
+    const { project } = await svc.createProject(slug());
     const one = await acceptedIntent(project, "One", "builder-a", "src/a.ts");
     const two = await acceptedIntent(project, "Two", "builder-b", "src/b.ts");
     fake.copyCommit(one.fork.fork_repo, one.commit, project.slug, "main");
@@ -149,7 +166,7 @@ describe("accept and land", () => {
     expect((await svc.intentView(two.intent.id))!.intent.state).toBe("landed");
   });
   it("lands a later match when a non-matching accepted intent is listed first", async () => {
-    const project = await svc.createProject(slug());
+    const { project } = await svc.createProject(slug());
     const first = await acceptedIntent(project, "First", "builder-a", "src/a.ts");
     const second = await acceptedIntent(project, "Second", "builder-b", "src/b.ts");
     fake.copyCommit(second.fork.fork_repo, second.commit, project.slug, "main");

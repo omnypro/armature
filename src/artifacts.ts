@@ -1,5 +1,5 @@
 // src/artifacts.ts
-export interface RepoRef { name: string; remote: string; defaultBranch: string }
+export interface RepoRef { name: string; remote: string; defaultBranch: string; token: string | null }
 
 export interface ArtifactsPort {
   create(name: string): Promise<RepoRef>;
@@ -20,12 +20,12 @@ const hashOf = (commit: unknown): string => (commit as Record<string, string>)[C
 export const realArtifacts = (artifacts: Artifacts): ArtifactsPort => ({
   async create(name) {
     const created = await artifacts.create(name, { setDefaultBranch: "main" });
-    return { name: created.name, remote: created.remote, defaultBranch: created.defaultBranch };
+    return { name: created.name, remote: created.remote, defaultBranch: created.defaultBranch, token: created.token ?? null };
   },
   async fork(source, target) {
     using repo = await artifacts.get(source);
     const forked = await repo.fork(target, { defaultBranchOnly: true });
-    return { name: forked.name, remote: forked.remote, defaultBranch: forked.defaultBranch };
+    return { name: forked.name, remote: forked.remote, defaultBranch: forked.defaultBranch, token: forked.token ?? null };
   },
   async createToken(repoName, scope, ttlSeconds) {
     using repo = await artifacts.get(repoName);

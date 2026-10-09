@@ -4,6 +4,9 @@
 # from the cockpit, commit the memoir on top, push main. The push event marks
 # the intent landed. Needs git, curl, jq, and:
 #   ARMATURE_URL, ARMATURE_TOKEN, ARMATURE_FORK_TOKEN, ARMATURE_PROJECT_TOKEN
+#   ARMATURE_PROJECT_TOKEN comes from `bunx wrangler artifacts repos issue-token
+#     <slug> --namespace armature --scope write --ttl 604800 --json`, and
+#     ARMATURE_FORK_TOKEN from `fork.request`.
 #   ARMATURE_MIRROR (optional GitHub remote, pushed after the project repo)
 set -eu
 

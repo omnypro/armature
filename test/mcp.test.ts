@@ -32,7 +32,7 @@ describe("/mcp", () => {
   it("runs the crew's loop: read the project, fork, propose, see the overlap, read the change feed", async () => {
     const { armature } = buildApp(env);
     const slug = `m${crypto.randomUUID().slice(0, 6)}`;
-    const project = await armature.createProject(slug);
+    const { project } = await armature.createProject(slug);
     await armature.setVision(project.id, "Vision.");
     const intent = await armature.createIntent(project.id, "Do", "It.");
     const q = await result(await call("exchange.file", { intent_id: intent.id, kind: "question", body: "Which it?", author: "challenger" }));
@@ -60,7 +60,7 @@ describe("/mcp", () => {
   it("will not let the crew speak as the pilot, and files no challenges", async () => {
     const { armature } = buildApp(env);
     const slug = `p${crypto.randomUUID().slice(0, 6)}`;
-    const project = await armature.createProject(slug);
+    const { project } = await armature.createProject(slug);
     const intent = await armature.createIntent(project.id, "Guard", "It.");
     const spoof = await raw(await call("exchange.file", { intent_id: intent.id, kind: "question", body: "Answered.", author: "pilot" }));
     expect(spoof.result.isError).toBe(true);

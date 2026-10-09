@@ -38,14 +38,14 @@ export class Armature {
 
   listProjects(): Promise<Project[]> { return this.db.listProjects(); }
 
-  async createProject(slug: string): Promise<Project> {
+  async createProject(slug: string): Promise<{ project: Project; token: string | null }> {
     if (!/^[a-z0-9][a-z0-9._-]{1,62}$/.test(slug)) throw new ServiceError("slug must be lowercase letters, digits, dots, dashes", 400);
     const repo = await this.artifacts.create(slug);
     const project = await this.db.createProject({ slug, namespace: this.namespace, repo: repo.name, remote: repo.remote });
     const subscriptionId = await this.subscribe(repo.name);
     if (subscriptionId) await this.db.setProjectSubscription(project.id, subscriptionId);
     await this.db.recordEvent(project.id, "project.created", project.id);
-    return { ...project, subscription_id: subscriptionId };
+    return { project: { ...project, subscription_id: subscriptionId }, token: repo.token };
   }
 
   async setVision(projectId: string, vision: string): Promise<void> {
@@ -124,9 +124,9 @@ export class Armature {
     const forked = await this.artifacts.fork(project.repo, target);
     const subscriptionId = await this.subscribe(target);
     const fork = await this.db.createFork({ intent_id: intent.id, limb, fork_repo: forked.name, fork_remote: forked.remote, base_commit: base, subscription_id: subscriptionId });
-    const token = await this.artifacts.createToken(target, "write", TOKEN_TTL_SECONDS);
+    const token = forked.token ?? (await this.artifacts.createToken(target, "write", TOKEN_TTL_SECONDS)).plaintext;
     await this.db.recordEvent(project.id, "fork.created", fork.id, limb);
-    return { fork, token: token.plaintext };
+    return { fork, token };
   }
 
   async fileProposal(input: { intentId: string; limb: string; commit: string; paths: string[]; evidence: string }): Promise<{ proposal: Proposal; overlaps: Overlap[] }> {

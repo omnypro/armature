@@ -41,9 +41,12 @@ machine, talking to Armature over MCP. Their quality is yours.
 4. `wrangler secret put PILOT_TOKEN` (any long string: your seat).
 5. `wrangler secret put CF_API_TOKEN` (Queues Edit, Artifacts Read).
 6. `wrangler d1 migrations apply armature --remote && wrangler deploy`
-7. Open the Worker URL, enter your token, create a project. Push your code
-   to the remote it shows. Connect the repo to Workers Builds in the
-   dashboard if you want `main` to deploy.
+7. Open the Worker URL, enter your token, create a project. The project
+   page shows the repo's write token once; push your code to the remote it
+   shows with that token. For later pushes, issue a new one with
+   `bunx wrangler artifacts repos issue-token <slug> --namespace armature --scope write --ttl 604800 --json`.
+   Connect the repo to Workers Builds in the dashboard if you want `main` to
+   deploy.
 8. Point your agents at `<worker-url>/mcp` with `Authorization: Bearer
    <token>`, and hand each one a file from `crew/`.
 9. When you accept a proposal, run `bin/land <slug> <intent-id>` with the

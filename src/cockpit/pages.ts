@@ -10,11 +10,14 @@ export const projectsPage = (projects: Project[]): string =>
   layout("Projects", `<h1>Projects</h1><ul>${projects.map((p) => `<li><a href="/p/${esc(p.slug)}">${esc(p.slug)}</a></li>`).join("")}</ul>
 <h2>New project</h2><form method="post" action="/projects"><input type="text" name="slug" placeholder="slug"> <button>Create the repo</button></form>`);
 
-export const projectPage = (v: ProjectView): string => {
+const tokenNotice = (remote: string, token: string): string =>
+  `<p><strong>Write token for this repo, shown once: <code>${esc(token)}</code>.</strong> Push your code with <code>${esc(`git push https://x:${token}@${remote.replace(/^https:\/\//, "")} main`)}</code>.</p>`;
+
+export const projectPage = (v: ProjectView, writeToken: string | null = null): string => {
   const p = v.project;
   const rows = v.intents.map((r) => `<tr><td>${r.intent.seq}</td><td><a href="/i/${r.intent.id}">${esc(r.intent.title)}</a></td><td>${r.intent.state}</td><td>${r.unanswered}</td><td>${r.openPokes}</td><td>${r.limbs.map(esc).join(", ")}</td><td>${r.openProposals}</td><td>${r.overlaps}</td><td>${r.intent.commit_ref ? r.intent.commit_ref.slice(0, 12) : ""}</td></tr>`).join("");
   return layout(p.slug, `<h1>${esc(p.slug)}</h1><p class="note">${esc(p.remote)}${p.subscription_id ? "" : " · <strong>landing cannot be verified: no push subscription on the project repo</strong>"}</p>
-<h2>Blueprint</h2>${PUBLISHED}<form method="post" action="/p/${esc(p.slug)}/vision"><textarea name="vision" rows="8">${esc(p.vision)}</textarea><br><button>Save the vision</button></form>
+${writeToken ? tokenNotice(p.remote, writeToken) : ""}<h2>Blueprint</h2>${PUBLISHED}<form method="post" action="/p/${esc(p.slug)}/vision"><textarea name="vision" rows="8">${esc(p.vision)}</textarea><br><button>Save the vision</button></form>
 <h2>Doctrine</h2>${v.doctrine === null ? `<p class="mute">No ARMATURE.md on main yet.</p>` : verbatim(v.doctrine)}
 <h2>Intents</h2><table><tr><th>#</th><th>title</th><th>state</th><th>unanswered</th><th>open pokes</th><th>limbs</th><th>open proposals</th><th>overlaps</th><th>landed</th></tr>${rows}</table>
 <h3>New intent</h3>${PUBLISHED}<form method="post" action="/p/${esc(p.slug)}/intents"><input type="text" name="title" placeholder="title"><br><textarea name="body" rows="10" placeholder="what you want next, in your words"></textarea><br><button>File the intent</button></form>
