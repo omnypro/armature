@@ -7,7 +7,7 @@
 #   ARMATURE_PROJECT_TOKEN comes from `bunx wrangler artifacts repos issue-token
 #     <slug> --namespace armature --scope write --ttl 604800 --json`, and
 #     ARMATURE_FORK_TOKEN from `fork.request`.
-#   ARMATURE_MIRROR (optional GitHub remote, pushed after the project repo)
+#   ARMATURE_MIRROR (optional second remote, pushed after the project repo)
 set -eu
 
 slug="${1:?project slug}"
@@ -44,13 +44,14 @@ git -C "$work" checkout -q "$commit"
 export="$(api "/api/intent/$intent/export")"
 dir="memoir/$(printf '%s' "$export" | jq -r '.dir')"
 mkdir -p "$work/$dir"
-printf '%s' "$export" | jq -r '.blueprint' > "$work/BLUEPRINT.md"
+printf '%s' "$export" | jq -j '.blueprint' > "$work/BLUEPRINT.md"
 for f in intent.md exchanges.md proposals.md; do
-  printf '%s' "$export" | jq -r --arg f "$f" '.files[$f]' > "$work/$dir/$f"
+  printf '%s' "$export" | jq -j --arg f "$f" '.files[$f]' > "$work/$dir/$f"
 done
 git -C "$work" add BLUEPRINT.md "$dir"
 padded="$(printf '%04d' "$seq")"
-git -C "$work" -c user.name="${GIT_AUTHOR_NAME:-armature}" -c user.email="${GIT_AUTHOR_EMAIL:-armature@localhost}" commit -q -m "Land intent $padded: $title."
+title="${title%.}"
+git -C "$work" commit -q -m "Land intent $padded: $title."
 git -C "$work" push -q "$(with_token "$project_remote" "$ARMATURE_PROJECT_TOKEN")" HEAD:refs/heads/main
 if [ -n "${ARMATURE_MIRROR:-}" ]; then git -C "$work" push -q "$ARMATURE_MIRROR" HEAD:refs/heads/main; fi
 echo "landed $(git -C "$work" rev-parse HEAD) for intent $padded"
