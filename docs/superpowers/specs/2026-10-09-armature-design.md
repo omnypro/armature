@@ -184,8 +184,9 @@ files a new proposal, which supersedes the old one.
 ### Fork
 
 Recorded on the intent as the limb's workspace: `limb`, `fork_repo`,
-`fork_remote`, `base_commit`, `created_at`, `last_push_at`. One fork per
-limb per intent. The fork name is `<project>--<seq>--<limb>`.
+`fork_remote`, `base_commit`, `subscription_id` (the fork's push
+subscription, or null if creating it failed), `created_at`, `last_push_at`.
+One fork per limb per intent. The fork name is `<project>--<seq>--<limb>`.
 
 ## 5. The blueprint and the memoir in the repository
 
@@ -311,8 +312,8 @@ forks, open proposals, overlaps, landed commit. Nothing summarised; counts
 link to the rows that make them.
 
 **Intent page.** The body. Then every exchange in order with its direction,
-kind, author and tag, replies nested one level. Then forks: limb, base,
-commits since base, touched paths, last push, open steers. Then proposals:
+kind, author and tag, replies nested one level. Then forks: limb, repo, base,
+last push; steers addressed to a limb appear in the exchanges list. Then proposals:
 limb, commit, paths, evidence, the diff per path, overlaps with other
 proposals, and the accept and reject controls. Pilot controls sit inline:
 reply, take or dismiss, challenge, steer, mark private, close, accept,
@@ -328,10 +329,12 @@ repo, run on the pilot's machine or by a limb. It:
 
 1. reads the intent from the cockpit API and refuses unless state is
    `accepted`;
-2. fetches the accepted commit from the fork;
+2. fetches the fork's `main` and refuses unless the accepted commit is on
+   it;
 3. checks the project's `main` is an ancestor of the accepted commit, and
    refuses with instructions to rebase otherwise;
-4. calls `memoir.export` and writes `BLUEPRINT.md` and
+4. fetches the chapter export from the cockpit API (the same files the
+   `memoir.export` tool returns) and writes `BLUEPRINT.md` and
    `memoir/NNNN-slug/*`;
 5. commits them on top of the accepted commit with the message
    `Land intent NNNN: <title>.`;
