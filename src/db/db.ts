@@ -153,9 +153,7 @@ export class Db {
 
   // Push idempotency
   async markPushSeen(repo: string, after: string): Promise<boolean> {
-    const existing = await this.d1.prepare("SELECT 1 AS one FROM pushes WHERE repo = ? AND after_hash = ?").bind(repo, after).first();
-    if (existing) return false;
-    await this.d1.prepare("INSERT INTO pushes (repo, after_hash, seen_at) VALUES (?,?,?)").bind(repo, after, now()).run();
-    return true;
+    const result = await this.d1.prepare("INSERT OR IGNORE INTO pushes (repo, after_hash, seen_at) VALUES (?,?,?)").bind(repo, after, now()).run();
+    return result.meta.changes === 1;
   }
 }

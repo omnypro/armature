@@ -49,4 +49,10 @@ describe("Db", () => {
     const later = await db.eventsSince(project.id, all[0].id);
     expect(later.map((e) => e.kind)).toEqual(["exchange.filed"]);
   });
+
+  it("marks a push seen once and reports it as a repeat afterwards", async () => {
+    const db = new Db(env.DB);
+    expect(await db.markPushSeen("r", "a".repeat(40))).toBe(true);
+    expect(await db.markPushSeen("r", "a".repeat(40))).toBe(false);
+  });
 });
