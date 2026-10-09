@@ -65,6 +65,11 @@ export class Armature {
     if (!input.body.trim()) throw new ServiceError("an exchange needs a body", 400);
     const replyTo = input.replyTo ? await this.db.getExchange(input.replyTo) : null;
     if (input.kind === "reply" && !replyTo) throw new ServiceError("reply_to does not exist", 400);
+    if (replyTo && replyTo.intent_id !== intent.id) throw new ServiceError("reply_to is on another intent", 400);
+    if (input.proposalId) {
+      const proposal = await this.db.getProposal(input.proposalId);
+      if (!proposal || proposal.intent_id !== intent.id) throw new ServiceError("proposal is on another intent", 400);
+    }
     if (input.kind === "poke" && !input.tag) throw new ServiceError("a poke needs a tag", 400);
     const exchange = await this.db.createExchange({
       intent_id: intent.id, proposal_id: input.proposalId ?? replyTo?.proposal_id ?? null, limb: input.limb ?? null,

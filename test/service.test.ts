@@ -52,6 +52,22 @@ describe("exchanges", () => {
     expect(reply?.body).toBe("Covered in the next chapter.");
     expect(view!.exchanges.find((e) => e.id === poke.id)?.taken).toBe(false);
   });
+  it("refuses a reply_to or a proposal from another intent", async () => {
+    const { project } = await svc.createProject(slug());
+    const here = await svc.createIntent(project.id, "Here", "B");
+    const there = await svc.createIntent(project.id, "There", "B");
+    const q = await svc.fileExchange({ intentId: there.id, kind: "question", body: "Why?", author: "challenger" });
+    await expect(svc.fileExchange({ intentId: here.id, kind: "reply", body: "No.", author: "pilot", replyTo: q.id })).rejects.toThrow("reply_to is on another intent");
+    await svc.closeChallenge(there.id);
+    const { fork } = await svc.requestFork(there.id, "builder-a");
+    const commit = fake.commit(fork.fork_repo, "main", { "a.ts": "1" });
+    const { proposal } = await svc.fileProposal({ intentId: there.id, limb: "builder-a", commit, paths: ["a.ts"], evidence: "ok" });
+    const wrong = svc.fileExchange({ intentId: here.id, kind: "question", body: "This?", author: "challenger", proposalId: proposal.id });
+    await expect(wrong).rejects.toThrow("proposal is on another intent");
+    await expect(wrong).rejects.toMatchObject({ status: 400 });
+    await expect(svc.fileExchange({ intentId: here.id, kind: "question", body: "That?", author: "challenger", proposalId: "nope" })).rejects.toThrow("proposal is on another intent");
+    expect((await svc.intentView(here.id))!.exchanges).toEqual([]);
+  });
 });
 
 describe("closing", () => {

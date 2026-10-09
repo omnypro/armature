@@ -27,17 +27,18 @@ const renderExchanges = (all: Exchange[]): string => {
   const withheld = withheldIds(all);
   const visible = all.filter((e) => !withheld.has(e.id));
   const replies = (id: string) => visible.filter((r) => r.kind === "reply" && r.reply_to === id);
+  const thread = (id: string, depth: number): string[] =>
+    replies(id).flatMap((r) => [...`${r.author} replied: ${r.body}`.split("\n").map((line) => `${"> ".repeat(depth)}${line}`), "", ...thread(r.id, depth + 1)]);
   const roots = visible.filter((e) => e.kind !== "reply");
   const parts: string[] = ["# Exchanges", ""];
   for (const root of roots) {
     parts.push(`## ${describe(root)}`, "", root.body, "");
-    const rs = replies(root.id);
-    if (root.kind === "question" && !rs.some((r) => r.author === "pilot")) parts.push("> unanswered", "");
-    if (root.kind === "poke") parts.push(root.taken === true ? "> taken by the pilot" : root.taken === false ? "> dismissed by the pilot" : "> not decided", "");
-    for (const r of rs) {
-      parts.push(`> ${r.author} replied: ${r.body}`, "");
-      for (const rr of replies(r.id)) parts.push(`> > ${rr.author} replied: ${rr.body}`, "");
+    if (root.kind === "question" && !replies(root.id).some((r) => r.author === "pilot")) {
+      const answered = all.some((r) => r.kind === "reply" && r.reply_to === root.id && r.author === "pilot");
+      parts.push(answered ? "> answered; the reply withheld by the pilot" : "> unanswered", "");
     }
+    if (root.kind === "poke") parts.push(root.taken === true ? "> taken by the pilot" : root.taken === false ? "> dismissed by the pilot" : "> not decided", "");
+    parts.push(...thread(root.id, 1));
   }
   if (withheld.size > 0) parts.push(`${withheld.size} exchange${withheld.size === 1 ? "" : "s"} withheld by the pilot.`, "");
   return parts.join("\n");

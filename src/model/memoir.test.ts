@@ -30,13 +30,25 @@ describe("renderChapter", () => {
     const q2 = ex({ id: "q2", body: "What about auth?" });
     const secret = ex({ id: "s", kind: "reply", author: "pilot", direction: "to_crew", reply_to: "q2", body: "not for the record", private: true });
     const poke = ex({ id: "k", kind: "poke", tag: "heads_up", author: "watcher", body: "The route has no test.", taken: true });
-    const out = renderChapter({ project, intent, exchanges: [q1, a1, q2, secret, poke], proposals, forks });
+    const q3 = ex({ id: "q3", body: "Which region?" });
+    const out = renderChapter({ project, intent, exchanges: [q1, a1, q2, secret, poke, q3], proposals, forks });
     const md = out.files["exchanges.md"];
     expect(md).toContain("## question, from challenger, to the pilot\n\nWhy a health route first?\n\n> pilot replied: So the deploy can be checked.");
-    expect(md).toContain("## question, from challenger, to the pilot\n\nWhat about auth?\n\n> unanswered");
+    expect(md).toContain("## question, from challenger, to the pilot\n\nWhat about auth?\n\n> answered; the reply withheld by the pilot\n");
+    expect(md).toContain("## question, from challenger, to the pilot\n\nWhich region?\n\n> unanswered\n");
     expect(md).toContain("## poke (heads_up), from watcher, to the pilot\n\nThe route has no test.\n\n> taken by the pilot");
     expect(md).not.toContain("not for the record");
     expect(md).toContain("1 exchange withheld by the pilot.");
+  });
+  it("quotes a reply thread at any depth, every line of every reply", () => {
+    const c = ex({ id: "c", kind: "challenge", author: "pilot", direction: "to_crew", limb: "builder-a", body: "Why x?" });
+    const r1 = ex({ id: "r1", kind: "reply", author: "builder-a", direction: "to_pilot", reply_to: "c", body: "Because y." });
+    const r2 = ex({ id: "r2", kind: "reply", author: "pilot", direction: "to_crew", reply_to: "r1", body: "Fine.\n\nBut add a test." });
+    const r3 = ex({ id: "r3", kind: "reply", author: "builder-a", direction: "to_pilot", reply_to: "r2", body: "Added." });
+    const out = renderChapter({ project, intent, exchanges: [c, r1, r2, r3], proposals, forks });
+    expect(out.files["exchanges.md"]).toBe(
+      ["# Exchanges", "", "## challenge, from pilot, to builder-a", "", "Why x?", "", "> builder-a replied: Because y.", "", "> > pilot replied: Fine.", "> > ", "> > But add a test.", "", "> > > builder-a replied: Added.", ""].join("\n"),
+    );
   });
   it("lists proposals with their fate and evidence", () => {
     const out = renderChapter({ project, intent, exchanges: [], proposals, forks });
