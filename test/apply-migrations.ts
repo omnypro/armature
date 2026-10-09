@@ -5,6 +5,8 @@ declare global {
   namespace Cloudflare {
     interface Env {
       TEST_MIGRATIONS: D1Migration[];
+      PILOT_TOKEN: string;
+      CF_API_TOKEN: string;
     }
   }
 }

@@ -1,11 +1,7 @@
 // test/auth.test.ts
-import { env as workerEnv } from "cloudflare:workers";
+import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { COOKIE_NAME, isPilot, seatCookie } from "../src/auth";
-import type { Env } from "../src/env";
-
-// The generated Cloudflare.Env omits the secrets (PILOT_TOKEN, CF_API_TOKEN).
-const env = workerEnv as unknown as Env;
 
 describe("isPilot", () => {
   it("accepts the bearer token", () => {
