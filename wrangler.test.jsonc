@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "armature",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{ "binding": "DB", "database_name": "armature", "database_id": "test", "migrations_dir": "migrations" }],
+  "queues": { "consumers": [{ "queue": "armature-events" }] },
+  "vars": { "EVENTS_QUEUE_ID": "", "CF_ACCOUNT_ID": "acct", "ARTIFACTS_NAMESPACE": "armature" }
+}

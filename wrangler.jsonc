@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "armature",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  // One Artifacts namespace per pilot. Single seat in v1.
+  "artifacts": [{ "binding": "ARTIFACTS", "namespace": "armature", "remote": true }],
+  // The blueprint: vision and in-flight intents. Create with:
+  //   wrangler d1 create armature
+  // then paste the database_id below.
+  "d1_databases": [{ "binding": "DB", "database_name": "armature", "database_id": "REPLACE_AFTER_CREATE", "migrations_dir": "migrations" }],
+  // Artifacts event subscriptions deliver here. Create with:
+  //   wrangler queues create armature-events
+  "queues": {
+    "consumers": [{ "queue": "armature-events", "max_batch_size": 10, "max_retries": 3 }]
+  },
+  "vars": {
+    // Filled after `wrangler queues create`: the queue id from `wrangler queues info armature-events`.
+    "EVENTS_QUEUE_ID": "REPLACE_AFTER_CREATE",
+    "CF_ACCOUNT_ID": "82f59c96d74807a4f02b358892036225",
+    "ARTIFACTS_NAMESPACE": "armature"
+  }
+  // Secrets, set with `wrangler secret put`:
+  //   PILOT_TOKEN   the single seat
+  //   CF_API_TOKEN  Queues Edit + Artifacts Read, for creating event subscriptions
+}
