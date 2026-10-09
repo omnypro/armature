@@ -42,7 +42,7 @@ afterAll(() => server.stop());
 
 describe("bin/land", () => {
   it("fetches the accepted commit, commits the chapter on top, and pushes main", async () => {
-    const env = { ...process.env, ARMATURE_URL: `http://localhost:${server.port}`, ARMATURE_TOKEN: "t", ARMATURE_FORK_TOKEN: "x", ARMATURE_PROJECT_TOKEN: "x" };
+    const env = { ...process.env, ARMATURE_MIRROR: "", ARMATURE_URL: `http://localhost:${server.port}`, ARMATURE_TOKEN: "t", ARMATURE_FORK_TOKEN: "x", ARMATURE_PROJECT_TOKEN: "x" };
     const out = await $`sh bin/land demo i1`.env(env).text();
     expect(out).toMatch(/^landed [0-9a-f]{40} for intent 0001/);
     const log = await $`git --git-dir ${project} log --format=%s main`.text();
@@ -53,7 +53,7 @@ describe("bin/land", () => {
     expect(files).toContain("BLUEPRINT.md");
   });
   it("refuses when the intent is not accepted", async () => {
-    const env = { ...process.env, ARMATURE_URL: `http://localhost:${server.port}`, ARMATURE_TOKEN: "t", ARMATURE_FORK_TOKEN: "x", ARMATURE_PROJECT_TOKEN: "x" };
+    const env = { ...process.env, ARMATURE_MIRROR: "", ARMATURE_URL: `http://localhost:${server.port}`, ARMATURE_TOKEN: "t", ARMATURE_FORK_TOKEN: "x", ARMATURE_PROJECT_TOKEN: "x" };
     const r = await $`sh bin/land demo i2`.env(env).nothrow().quiet();
     expect(r.exitCode).toBe(2);
     expect(r.stderr.toString()).toContain("intent is open, not accepted");

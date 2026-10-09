@@ -31,7 +31,10 @@ export const createServer = (armature: Armature): McpServer => {
       intent_id: z.string(), kind: z.enum(["question", "poke", "reply"]), body: z.string().min(1), author: z.string().min(1),
       tag: z.enum(["heads_up", "you_should_know"]).optional(), proposal_id: z.string().optional(), reply_to: z.string().optional(), limb: z.string().optional(),
     },
-  }, guard(async (a) => armature.fileExchange({ intentId: a.intent_id, kind: a.kind, body: a.body, author: a.author, tag: a.tag, proposalId: a.proposal_id, replyTo: a.reply_to, limb: a.limb })));
+  }, guard(async (a) => {
+    if (a.author === "pilot") throw new Error('the crew cannot speak as "pilot"');
+    return armature.fileExchange({ intentId: a.intent_id, kind: a.kind, body: a.body, author: a.author, tag: a.tag, proposalId: a.proposal_id, replyTo: a.reply_to, limb: a.limb });
+  }));
 
   server.registerTool("fork.request", {
     description: "Fork the project repo for this limb on this intent and mint a write token. The intent's challenge must be closed.",

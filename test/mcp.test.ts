@@ -19,6 +19,12 @@ const result = async (res: Response) => {
   return JSON.parse(parsed.result.content[0].text);
 };
 
+const raw = async (res: Response) => {
+  const body = await res.text();
+  const line = body.split("\n").find((l) => l.startsWith("data:")) ?? body;
+  return JSON.parse(line.replace(/^data:\s*/, ""));
+};
+
 describe("/mcp", () => {
   it("refuses without the seat", async () => {
     expect((await call("intent.list", { slug: "x" }, "nope")).status).toBe(401);
@@ -50,5 +56,18 @@ describe("/mcp", () => {
     expect(feed.cursor).toBeGreaterThan(0);
     const exported = await result(await call("memoir.export", { intent_id: intent.id }));
     expect(exported.dir).toBe("0001-do");
+  });
+  it("will not let the crew speak as the pilot, and files no challenges", async () => {
+    const { armature } = buildApp(env);
+    const slug = `p${crypto.randomUUID().slice(0, 6)}`;
+    const project = await armature.createProject(slug);
+    const intent = await armature.createIntent(project.id, "Guard", "It.");
+    const spoof = await raw(await call("exchange.file", { intent_id: intent.id, kind: "question", body: "Answered.", author: "pilot" }));
+    expect(spoof.result.isError).toBe(true);
+    expect(spoof.result.content[0].text).toContain('cannot speak as "pilot"');
+    const challenge = await raw(await call("exchange.file", { intent_id: intent.id, kind: "challenge", body: "Hm?", author: "challenger" }));
+    expect(challenge.error !== undefined || challenge.result?.isError === true).toBe(true);
+    const full = await result(await call("intent.get", { intent_id: intent.id }));
+    expect(full.exchanges).toEqual([]);
   });
 });
