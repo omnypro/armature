@@ -179,22 +179,24 @@ export class Armature {
   }
 
   async markLanded(repo: string, after: string, pushed: { id: string; parents: string[] }[], truncated: boolean): Promise<"landed" | "stray" | "ignored"> {
-    if (!(await this.db.markPushSeen(repo, after))) return "ignored";
+    if (await this.db.pushSeen(repo, after)) return "ignored";
     const project = await this.db.getProjectByRepo(repo);
     if (!project) return "ignored";
-    const accepted = await this.db.listIntents(project.id, "accepted");
-    for (const intent of accepted) {
+    let landed = 0;
+    for (const intent of await this.db.listIntents(project.id, "accepted")) {
       const proposal = intent.accepted_proposal_id ? await this.db.getProposal(intent.accepted_proposal_id) : null;
       if (!proposal) continue;
       const inPayload = pushed.some((c) => c.id === proposal.commit || c.parents.includes(proposal.commit));
       const descends = inPayload || (truncated && (await this.artifacts.isAncestor(repo, proposal.commit, after)));
       if (!descends) continue;
+      assertTransition(intent.state, "landed");
       await this.db.updateIntent(intent.id, { state: "landed", commit_ref: after, landed_at: now() });
       await this.db.recordEvent(project.id, "intent.landed", intent.id, after);
-      return "landed";
+      landed++;
     }
-    await this.db.recordEvent(project.id, "push.stray", after, repo);
-    return "stray";
+    if (landed === 0) await this.db.recordEvent(project.id, "push.stray", after, repo);
+    await this.db.markPushSeen(repo, after);
+    return landed > 0 ? "landed" : "stray";
   }
 
   async exportChapter(intentId: string): Promise<ChapterFiles> {

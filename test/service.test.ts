@@ -127,6 +127,44 @@ describe("accept and land", () => {
     await svc.closeChallenge(other.id);
     expect(await svc.markLanded(project.slug, stray, [{ id: stray, parents: ["f".repeat(40)] }], false)).toBe("stray");
   });
+  async function acceptedIntent(project: { id: string }, title: string, limb: string, file: string) {
+    const intent = await svc.createIntent(project.id, title, "Body.");
+    await svc.closeChallenge(intent.id);
+    const { fork } = await svc.requestFork(intent.id, limb);
+    const commit = fake.commit(fork.fork_repo, "main", { [file]: limb });
+    const { proposal } = await svc.fileProposal({ intentId: intent.id, limb, commit, paths: [file], evidence: "ok" });
+    await svc.accept(intent.id, proposal.id);
+    return { intent, fork, commit };
+  }
+  it("lands every accepted intent that one push carries", async () => {
+    const project = await svc.createProject(slug());
+    const one = await acceptedIntent(project, "One", "builder-a", "src/a.ts");
+    const two = await acceptedIntent(project, "Two", "builder-b", "src/b.ts");
+    fake.copyCommit(one.fork.fork_repo, one.commit, project.slug, "main");
+    fake.copyCommit(two.fork.fork_repo, two.commit, project.slug, "main");
+    const landing = fake.commit(project.slug, "main", { "memoir/x": "..." });
+    const outcome = await svc.markLanded(project.slug, landing, [{ id: landing, parents: [one.commit, two.commit] }], false);
+    expect(outcome).toBe("landed");
+    expect((await svc.intentView(one.intent.id))!.intent.state).toBe("landed");
+    expect((await svc.intentView(two.intent.id))!.intent.state).toBe("landed");
+  });
+  it("lands a later match when a non-matching accepted intent is listed first", async () => {
+    const project = await svc.createProject(slug());
+    const first = await acceptedIntent(project, "First", "builder-a", "src/a.ts");
+    const second = await acceptedIntent(project, "Second", "builder-b", "src/b.ts");
+    fake.copyCommit(second.fork.fork_repo, second.commit, project.slug, "main");
+    const landing = fake.commit(project.slug, "main", { "memoir/y": "..." });
+    expect(await svc.markLanded(project.slug, landing, [{ id: landing, parents: [second.commit] }], false)).toBe("landed");
+    expect((await svc.intentView(first.intent.id))!.intent.state).toBe("accepted");
+    expect((await svc.intentView(second.intent.id))!.intent.state).toBe("landed");
+  });
+  it("ignores a push for an unknown repo without marking it seen", async () => {
+    const db = new Db(env.DB);
+    const repo = slug();
+    const after = "e".repeat(40);
+    expect(await svc.markLanded(repo, after, [{ id: after, parents: [] }], false)).toBe("ignored");
+    expect(await db.pushSeen(repo, after)).toBe(false);
+  });
   it("exports a chapter with the blueprint", async () => {
     const { project, intent } = await ready();
     await svc.setVision(project.id, "One pilot.");
