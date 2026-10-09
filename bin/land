@@ -1,0 +1,53 @@
+#!/bin/sh
+# bin/land <project-slug> <intent-id>
+# Lands an accepted proposal: fetch its commit from the fork, export the chapter
+# from the cockpit, commit the memoir on top, push main. The push event marks
+# the intent landed. Needs git, curl, jq, and:
+#   ARMATURE_URL, ARMATURE_TOKEN, ARMATURE_FORK_TOKEN, ARMATURE_PROJECT_TOKEN
+#   ARMATURE_MIRROR (optional GitHub remote, pushed after the project repo)
+set -eu
+
+slug="${1:?project slug}"
+intent="${2:?intent id}"
+: "${ARMATURE_URL:?}" "${ARMATURE_TOKEN:?}" "${ARMATURE_FORK_TOKEN:?}" "${ARMATURE_PROJECT_TOKEN:?}"
+
+api() { curl -fsS -H "Authorization: Bearer $ARMATURE_TOKEN" "$ARMATURE_URL$1"; }
+
+record="$(api "/api/intent/$intent")"
+state="$(printf '%s' "$record" | jq -r '.intent.state')"
+[ "$state" = "accepted" ] || { echo "intent is $state, not accepted" >&2; exit 2; }
+proposal_id="$(printf '%s' "$record" | jq -r '.intent.accepted_proposal_id')"
+commit="$(printf '%s' "$record" | jq -r --arg id "$proposal_id" '.proposals[] | select(.proposal.id==$id) | .proposal.commit')"
+fork_remote="$(printf '%s' "$record" | jq -r --arg id "$proposal_id" '.proposals[] | select(.proposal.id==$id) | .proposal.fork_remote')"
+project_remote="$(printf '%s' "$record" | jq -r '.project.remote')"
+title="$(printf '%s' "$record" | jq -r '.intent.title')"
+seq="$(printf '%s' "$record" | jq -r '.intent.seq')"
+
+with_token() { printf '%s' "$1" | sed "s#^https://#https://x:$2@#"; }
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+git -C "$work" init -q -b main
+git -C "$work" fetch -q "$(with_token "$project_remote" "$ARMATURE_PROJECT_TOKEN")" main:refs/remotes/project/main || true
+git -C "$work" fetch -q "$(with_token "$fork_remote" "$ARMATURE_FORK_TOKEN")" main:refs/remotes/fork/main
+git -C "$work" merge-base --is-ancestor "$commit" refs/remotes/fork/main || {
+  echo "accepted commit $commit is not on the fork's main; the fork moved on, file a new proposal" >&2; exit 4; }
+if git -C "$work" rev-parse -q --verify refs/remotes/project/main >/dev/null; then
+  git -C "$work" merge-base --is-ancestor refs/remotes/project/main "$commit" || {
+    echo "project main is not an ancestor of $commit; rebase the fork and file a new proposal" >&2; exit 3; }
+fi
+git -C "$work" checkout -q "$commit"
+
+export="$(api "/api/intent/$intent/export")"
+dir="memoir/$(printf '%s' "$export" | jq -r '.dir')"
+mkdir -p "$work/$dir"
+printf '%s' "$export" | jq -r '.blueprint' > "$work/BLUEPRINT.md"
+for f in intent.md exchanges.md proposals.md; do
+  printf '%s' "$export" | jq -r --arg f "$f" '.files[$f]' > "$work/$dir/$f"
+done
+git -C "$work" add BLUEPRINT.md "$dir"
+padded="$(printf '%04d' "$seq")"
+git -C "$work" -c user.name="${GIT_AUTHOR_NAME:-armature}" -c user.email="${GIT_AUTHOR_EMAIL:-armature@localhost}" commit -q -m "Land intent $padded: $title."
+git -C "$work" push -q "$(with_token "$project_remote" "$ARMATURE_PROJECT_TOKEN")" HEAD:refs/heads/main
+if [ -n "${ARMATURE_MIRROR:-}" ]; then git -C "$work" push -q "$ARMATURE_MIRROR" HEAD:refs/heads/main; fi
+echo "landed $(git -C "$work" rev-parse HEAD) for intent $padded"

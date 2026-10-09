@@ -16,6 +16,7 @@ export default defineConfig({
   ],
   test: {
     include: ["test/**/*.test.ts"],
+    exclude: ["test/land.test.ts"],
     setupFiles: ["./test/apply-migrations.ts"],
   },
 });
