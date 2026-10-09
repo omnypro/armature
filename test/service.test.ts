@@ -22,7 +22,7 @@ describe("projects and intents", () => {
   it("creates the repo, subscribes to its pushes, and reads the doctrine from main", async () => {
     const s = slug();
     const { project, token } = await svc.createProject(s);
-    expect(token).toBe(`tok-create-${s}`);
+    expect(token).toBe(`tok-create-${s}?expires=123`);
     expect(fake.repos.has(s)).toBe(true);
     expect(subscribed).toEqual([s]);
     expect(project.subscription_id).toBe(`sub-${s}`);

@@ -179,7 +179,8 @@ Overlap: when a proposal is filed, Armature intersects its `paths` with every
 other open proposal in the project. A non-empty intersection files one
 overlap poke on each affected intent naming the two proposals and the shared
 paths. The pilot decides which lands; the other limb rebases its fork on the
-project's new main and files a new proposal on the next intent.
+project's new main and files a new proposal on its own intent if it is still
+closed, otherwise on the next intent.
 
 ### Fork
 
@@ -190,8 +191,9 @@ One fork per limb per intent. The fork name is `<project>--<seq>--<limb>`.
 
 ## 5. The blueprint and the memoir in the repository
 
-Exported at landing by `bin/land` through the `memoir.export` MCP call. The
-export is deterministic from the D1 record, so re-running it is harmless.
+Exported at landing by `bin/land` through the `memoir.export` MCP call.
+Re-running the export is harmless; only the `landed:` timestamp varies,
+because `bin/land` writes the chapter before the push.
 The chapter is exported before the landing push, so `bin/land` writes it with
 `state: landed`, the accepted commit, and the export time; the file's presence
 on `main` is the proof.

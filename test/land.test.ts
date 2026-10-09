@@ -62,6 +62,12 @@ describe("bin/land", () => {
     expect(blueprint).toBe("# Blueprint\n\nV.\n");
     expect(await $`git --git-dir ${project} show main:memoir/0001-change-a/exchanges.md`.text()).toBe("E\n");
   });
+  it("strips the token's expiry suffix before it goes in a URL", async () => {
+    const fn = (await $`sed -n ${"/^with_token()/p"} bin/land`.text()).trim();
+    expect(fn.startsWith("with_token()")).toBe(true);
+    const url = await $`sh -c ${`${fn}\nwith_token https://h/r.git 'abc?expires=9'`}`.text();
+    expect(url).toBe("https://x:abc@h/r.git");
+  });
   it("refuses when the intent is not accepted", async () => {
     const env = landEnv();
     const r = await $`sh bin/land demo i2`.env(env).nothrow().quiet();

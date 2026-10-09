@@ -32,8 +32,13 @@ describe("pages", () => {
     const created = await exports.default.fetch("https://armature.test/projects", form({ slug }));
     expect(created.status).toBe(200);
     const shown = await created.text();
-    expect(shown).toContain(`Write token for this repo, shown once: <code>tok-create-${slug}</code>.`);
-    expect(shown).toContain(`Push your code with <code>git push https://x:tok-create-${slug}@fake.artifacts/armature/${slug}.git main</code>.`);
+    expect(shown).toContain(`Write token for this repo, shown once: <code>tok-create-${slug}?expires=123</code>.`);
+    expect(shown).toContain("The part before <code>?expires=</code> goes in the URL.");
+    const command = shown.match(/<code>(git push [^<]*)<\/code>/)![1];
+    expect(command).toBe(`git push https://x:tok-create-${slug}@fake.artifacts/armature/${slug}.git main`);
+    expect(command).toContain(`x:tok-create-${slug}@`);
+    expect(command).not.toContain("?expires");
+    expect(shown.indexOf("shown once")).toBeLessThan(shown.indexOf("git push"));
     expect(shown.indexOf("Write token")).toBeLessThan(shown.indexOf("<h2>Blueprint</h2>"));
     expect(shown.split("<!doctype html>").length).toBe(2);
     await exports.default.fetch(`https://armature.test/p/${slug}/vision`, form({ vision: "A <b>bold</b> plan." }));

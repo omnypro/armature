@@ -11,7 +11,7 @@ export const projectsPage = (projects: Project[]): string =>
 <h2>New project</h2><form method="post" action="/projects"><input type="text" name="slug" placeholder="slug"> <button>Create the repo</button></form>`);
 
 const tokenNotice = (remote: string, token: string): string =>
-  `<p><strong>Write token for this repo, shown once: <code>${esc(token)}</code>.</strong> Push your code with <code>${esc(`git push https://x:${token}@${remote.replace(/^https:\/\//, "")} main`)}</code>.</p>`;
+  `<p><strong>Write token for this repo, shown once: <code>${esc(token)}</code>.</strong></p><p>The part before <code>?expires=</code> goes in the URL. Push your code with <code>${esc(`git push https://x:${token.split("?expires=")[0]}@${remote.replace(/^https:\/\//, "")} main`)}</code>.</p>`;
 
 export const projectPage = (v: ProjectView, writeToken: string | null = null): string => {
   const p = v.project;

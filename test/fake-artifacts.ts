@@ -12,7 +12,7 @@ export class FakeArtifacts implements ArtifactsPort {
   tokens: { repo: string; scope: string }[] = [];
 
   async create(name: string): Promise<RepoRef> {
-    const ref = { name, remote: `https://fake.artifacts/armature/${name}.git`, defaultBranch: "main", token: `tok-create-${name}` };
+    const ref = { name, remote: `https://fake.artifacts/armature/${name}.git`, defaultBranch: "main", token: `tok-create-${name}?expires=123` };
     const root: Commit = { hash: fakeHash(), parent: null, files: new Map() };
     this.repos.set(name, { ref, heads: new Map([["main", root.hash]]), commits: new Map([[root.hash, root]]) });
     return ref;

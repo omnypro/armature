@@ -5,8 +5,11 @@
 # the intent landed. Needs git, curl, jq, and:
 #   ARMATURE_URL, ARMATURE_TOKEN, ARMATURE_FORK_TOKEN, ARMATURE_PROJECT_TOKEN
 #   ARMATURE_PROJECT_TOKEN comes from `bunx wrangler artifacts repos issue-token
-#     <slug> --namespace armature --scope write --ttl 604800 --json`, and
-#     ARMATURE_FORK_TOKEN from `fork.request`.
+#     <slug> --namespace armature --scope write --ttl 604800 --json`.
+#   ARMATURE_FORK_TOKEN comes from `fork.request` while the intent is closed,
+#     or, once it is accepted, from `bunx wrangler artifacts repos issue-token
+#     <fork-repo> --namespace armature --scope read` (the fork repo name is in
+#     the intent page's Forks table).
 #   ARMATURE_MIRROR (optional second remote, pushed after the project repo)
 set -eu
 
@@ -26,7 +29,7 @@ project_remote="$(printf '%s' "$record" | jq -r '.project.remote')"
 title="$(printf '%s' "$record" | jq -r '.intent.title')"
 seq="$(printf '%s' "$record" | jq -r '.intent.seq')"
 
-with_token() { printf '%s' "$1" | sed "s#^https://#https://x:$2@#"; }
+with_token() { token="${2%%\?expires=*}"; printf '%s' "$1" | sed "s#^https://#https://x:$token@#"; }
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
