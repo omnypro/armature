@@ -39,6 +39,7 @@ describe("pages", () => {
     expect(page).toContain("published with the chapter");
     expect(page).toContain(">First<");
     expect(page).toContain("open");
+    expect(page.split("<!doctype html>").length).toBe(2);
   });
   it("shows unanswered questions, lets the pilot reply, close, and mark private", async () => {
     const slug = `d${crypto.randomUUID().slice(0, 6)}`;
@@ -69,5 +70,27 @@ describe("pages", () => {
     expect(record.intent.state).toBe("open");
     const exported = await (await exports.default.fetch(`https://armature.test/api/intent/${intentId}/export`, { headers: { authorization: "Bearer test-pilot-token" } })).json() as { dir: string };
     expect(exported.dir).toBe("0001-land-me");
+  });
+  it("takes or dismisses a poke with its own reason, and says so", async () => {
+    const slug = `f${crypto.randomUUID().slice(0, 6)}`;
+    await exports.default.fetch("https://armature.test/projects", form({ slug }));
+    const made = await exports.default.fetch(`https://armature.test/p/${slug}/intents`, form({ title: "T", body: "B" }));
+    const intentId = made.headers.get("location")!.split("/").pop()!;
+    const { armature } = (await import("../src/index")).buildApp(env);
+    const poke = await armature.fileExchange({ intentId, kind: "poke", tag: "heads_up", author: "watcher", body: "Look here." });
+    await exports.default.fetch(`https://armature.test/i/${intentId}/verdict`, form({ exchange_id: poke.id, taken: "no", reason: "Covered later." }));
+    const page = await (await exports.default.fetch(`https://armature.test/i/${intentId}`, { headers: seat })).text();
+    expect(page).toContain("dismissed");
+    expect(page).toContain("Covered later.");
+  });
+  it("refuses an illegal move with an escaped 409 page", async () => {
+    const slug = `g${crypto.randomUUID().slice(0, 6)}`;
+    await exports.default.fetch("https://armature.test/projects", form({ slug }));
+    const made = await exports.default.fetch(`https://armature.test/p/${slug}/intents`, form({ title: "T", body: "B" }));
+    const intentId = made.headers.get("location")!.split("/").pop()!;
+    await exports.default.fetch(`https://armature.test/i/${intentId}/close`, form({}));
+    const again = await exports.default.fetch(`https://armature.test/i/${intentId}/close`, form({}));
+    expect(again.status).toBe(409);
+    expect(await again.text()).toContain("closed -&gt; closed");
   });
 });

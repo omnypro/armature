@@ -23,9 +23,9 @@ export const projectPage = (v: ProjectView): string => {
 
 const exchangeHtml = (e: Exchange, all: Exchange[], intentId: string, depth = 0): string => {
   const replies = all.filter((r) => r.kind === "reply" && r.reply_to === e.id);
-  const head = e.kind === "poke" ? `poke (${e.tag})` : e.kind;
+  const head = e.kind === "poke" ? `poke (${esc(e.tag ?? "")})` : e.kind;
   const verdict = e.kind === "poke" && e.taken === null
-    ? `<form class="inline" method="post" action="/i/${intentId}/verdict"><input type="hidden" name="exchange_id" value="${e.id}"><input type="text" name="reason" placeholder="reason (optional)"> <button name="taken" value="yes">Take</button> <button name="taken" value="no">Dismiss</button></form>`
+    ? ["yes", "no"].map((taken) => `<form class="inline" method="post" action="/i/${intentId}/verdict"><input type="hidden" name="exchange_id" value="${e.id}"><input type="hidden" name="taken" value="${taken}"><input type="text" name="reason" placeholder="reason (optional)"> <button>${taken === "yes" ? "Take" : "Dismiss"}</button></form>`).join(" ")
     : e.kind === "poke" ? `<span class="mute">${e.taken ? "taken" : "dismissed"}</span>` : "";
   const privacy = `<form class="inline" method="post" action="/i/${intentId}/private"><input type="hidden" name="exchange_id" value="${e.id}"><button name="private" value="${e.private ? "no" : "yes"}">${e.private ? "make public" : "make private"}</button></form>`;
   const reply = `<form class="inline" method="post" action="/i/${intentId}/reply"><input type="hidden" name="reply_to" value="${e.id}"><input type="text" name="body" placeholder="reply"> <button>Reply</button></form>`;

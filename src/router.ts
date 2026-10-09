@@ -1,7 +1,7 @@
 // src/router.ts
 import { isPilot, seatCookie } from "./auth";
 import { actions } from "./cockpit/actions";
-import { page, redirect } from "./cockpit/html";
+import { esc, page, redirect } from "./cockpit/html";
 import { intentPage, loginPage, projectPage, projectsPage } from "./cockpit/pages";
 import type { Env } from "./env";
 import { type Armature, ServiceError } from "./service";
@@ -10,7 +10,7 @@ import { TransitionError } from "./model/intent";
 type Handler = (armature: Armature, params: string[], request: Request, env: Env) => Promise<Response>;
 interface Route { method: string; pattern: RegExp; handler: Handler; open?: boolean }
 
-const html = (title: string, body: string) => page(title, body);
+const html = (_title: string, body: string) => new Response(body, { headers: { "content-type": "text/html;charset=utf-8" } });
 const json = (data: unknown, status = 200) => Response.json(data, { status });
 
 const routes: Route[] = [
@@ -55,8 +55,8 @@ export const route = async (request: Request, env: Env, armature: Armature): Pro
     try {
       return await r.handler(armature, m.slice(1), request, env);
     } catch (error) {
-      if (error instanceof ServiceError) return page("Refused", `<h1>Refused</h1><p>${error.message}</p><p><a href="javascript:history.back()">back</a></p>`, error.status);
-      if (error instanceof TransitionError) return page("Refused", `<h1>Refused</h1><p>${error.message}</p>`, 409);
+      if (error instanceof ServiceError) return page("Refused", `<h1>Refused</h1><p>${esc(error.message)}</p><p><a href="javascript:history.back()">back</a></p>`, error.status);
+      if (error instanceof TransitionError) return page("Refused", `<h1>Refused</h1><p>${esc(error.message)}</p>`, 409);
       throw error;
     }
   }
