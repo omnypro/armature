@@ -1,6 +1,7 @@
 // test/service.test.ts
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
+import { projectPage } from "../src/cockpit/pages";
 import { Db } from "../src/db/db";
 import { Armature, ServiceError } from "../src/service";
 import { FakeArtifacts } from "./fake-artifacts";
@@ -28,6 +29,16 @@ describe("projects and intents", () => {
     fake.commit(s, "main", { "ARMATURE.md": "# Rules\n" });
     const view = await svc.projectView(s);
     expect(view?.doctrine).toBe("# Rules\n");
+    expect(view?.doctrineError).toBeNull();
+  });
+  it("shows why the doctrine could not be read instead of failing the project view", async () => {
+    const s = slug();
+    await svc.createProject(s);
+    fake.readFile = async () => { throw new Error("Artifacts <unavailable>"); };
+    const view = (await svc.projectView(s))!;
+    expect(view.doctrine).toBeNull();
+    expect(view.doctrineError).toBe("Artifacts <unavailable>");
+    expect(projectPage(view)).toContain("<h2>Doctrine</h2><p><strong>Could not read ARMATURE.md from main: Artifacts &lt;unavailable&gt;</strong></p>");
   });
 });
 

@@ -1,5 +1,7 @@
 import { env, exports } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { Armature } from "../src/service";
+import { route } from "../src/router";
 
 const seat = { cookie: "armature_seat=test-pilot-token" };
 const form = (data: Record<string, string>, headers: Record<string, string> = seat) =>
@@ -111,6 +113,20 @@ describe("pages", () => {
     const after = await (await exports.default.fetch(`https://armature.test/i/${intentId}`, { headers: seat })).text();
     expect(after).toContain(`landed ${commit.slice(0, 12)}`);
     expect(after).not.toContain("Verify landing");
+  });
+  it("turns any other error into an escaped 500 page and logs it", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const slug = `k${crypto.randomUUID().slice(0, 6)}`;
+    await exports.default.fetch("https://armature.test/projects", form({ slug }));
+    const again = await exports.default.fetch("https://armature.test/projects", form({ slug }));
+    expect(again.status).toBe(500);
+    expect(await again.text()).toContain("<h1>Refused</h1><p>");
+    const broken = { listProjects: async () => { throw new Error("<b>gone</b>"); } } as unknown as Armature;
+    const res = await route(new Request("https://armature.test/", { headers: seat }), env, broken);
+    expect(res.status).toBe(500);
+    expect(await res.text()).toContain("<h1>Refused</h1><p>&lt;b&gt;gone&lt;/b&gt;</p>");
+    expect(logged).toHaveBeenCalledTimes(2);
+    logged.mockRestore();
   });
   it("refuses an illegal move with an escaped 409 page", async () => {
     const slug = `g${crypto.randomUUID().slice(0, 6)}`;

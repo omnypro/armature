@@ -15,7 +15,7 @@ export class ServiceError extends Error {
 
 export interface FileExchange { intentId: string; kind: ExchangeKind; body: string; author: string; tag?: Tag; proposalId?: string; replyTo?: string; limb?: string; private?: boolean }
 export interface IntentRow { intent: Intent; unanswered: number; openPokes: number; limbs: string[]; openProposals: number; overlaps: number }
-export interface ProjectView { project: Project; doctrine: string | null; intents: IntentRow[]; chapters: string[] }
+export interface ProjectView { project: Project; doctrine: string | null; doctrineError: string | null; intents: IntentRow[]; chapters: string[] }
 export interface ProposalView { proposal: Proposal; blocking: Exchange[]; overlaps: Overlap[]; diffs: { path: string; diff: string }[] }
 export interface IntentView { project: Project; intent: Intent; exchanges: Exchange[]; forks: Fork[]; proposals: ProposalView[]; unanswered: Exchange[]; openPokes: Exchange[] }
 
@@ -235,7 +235,13 @@ export class Armature {
   async projectView(slug: string): Promise<ProjectView | null> {
     const project = await this.db.getProjectBySlug(slug);
     if (!project) return null;
-    const doctrine = await this.artifacts.readFile(project.repo, "main", DOCTRINE_PATH);
+    let doctrine: string | null = null;
+    let doctrineError: string | null = null;
+    try {
+      doctrine = await this.artifacts.readFile(project.repo, "main", DOCTRINE_PATH);
+    } catch (error) {
+      doctrineError = error instanceof Error ? error.message : String(error);
+    }
     const openProposals = await this.db.listOpenProposalsForProject(project.id);
     const intents: IntentRow[] = [];
     for (const intent of await this.db.listIntents(project.id)) {
@@ -246,7 +252,7 @@ export class Armature {
       intents.push({ intent, unanswered: unansweredQuestions(exchanges).length, openPokes: openPokes(exchanges).length, limbs: forks.map((f) => f.limb), openProposals: mine.length, overlaps });
     }
     const chapters = intents.filter((r) => r.intent.state === "landed").map((r) => chapterDir(r.intent.seq, r.intent.title));
-    return { project, doctrine, intents, chapters };
+    return { project, doctrine, doctrineError, intents, chapters };
   }
 
   async intentView(intentId: string): Promise<IntentView | null> {

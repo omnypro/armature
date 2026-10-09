@@ -59,7 +59,8 @@ export const route = async (request: Request, env: Env, armature: Armature): Pro
     } catch (error) {
       if (error instanceof ServiceError) return page("Refused", `<h1>Refused</h1><p>${esc(error.message)}</p><p><a href="javascript:history.back()">back</a></p>`, error.status);
       if (error instanceof TransitionError) return page("Refused", `<h1>Refused</h1><p>${esc(error.message)}</p>`, 409);
-      throw error;
+      console.error("request failed", request.method, url.pathname, error);
+      return page("Refused", `<h1>Refused</h1><p>${esc(error instanceof Error ? error.message : String(error))}</p>`, 500);
     }
   }
   return new Response("Not found", { status: 404 });
