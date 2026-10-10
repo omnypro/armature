@@ -1,0 +1,17 @@
+import { env } from "cloudflare:workers";
+import { applyD1Migrations, type D1Migration } from "cloudflare:test";
+
+declare global {
+  namespace Cloudflare {
+    interface Env {
+      TEST_MIGRATIONS: D1Migration[];
+      PILOT_TOKEN: string;
+      CF_API_TOKEN: string;
+    }
+  }
+}
+
+await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
+
+import { FakeArtifacts } from "./fake-artifacts";
+(globalThis as { __fakeArtifacts?: FakeArtifacts }).__fakeArtifacts = new FakeArtifacts();

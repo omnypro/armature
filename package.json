@@ -1,0 +1,30 @@
+{
+  "name": "armature",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "test:unit": "bun test src/model",
+    "test:land": "bun test test/land.test.ts",
+    "test:workers": "vitest run",
+    "test": "bun run test:unit && bun run test:land && bun run test:workers",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "agents": "0.28.0",
+    "diff": "^8.0.2",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.4.0",
+    "@cloudflare/workers-types": "5.20261009.1",
+    "@types/bun": "1.4.2",
+    "@types/diff": "^8.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.0",
+    "wrangler": "4.149.0"
+  }
+}

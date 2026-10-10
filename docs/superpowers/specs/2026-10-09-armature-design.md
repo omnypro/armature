@@ -178,8 +178,9 @@ Rules:
 Overlap: when a proposal is filed, Armature intersects its `paths` with every
 other open proposal in the project. A non-empty intersection files one
 overlap poke on each affected intent naming the two proposals and the shared
-paths. The pilot decides which lands; the other limb rebases its fork and
-files a new proposal, which supersedes the old one.
+paths. The pilot decides which lands; the other limb rebases its fork on the
+project's new main and files a new proposal on its own intent if it is still
+closed, otherwise on the next intent.
 
 ### Fork
 
@@ -190,8 +191,12 @@ One fork per limb per intent. The fork name is `<project>--<seq>--<limb>`.
 
 ## 5. The blueprint and the memoir in the repository
 
-Exported at landing by `bin/land` through the `memoir.export` MCP call. The
-export is deterministic from the D1 record, so re-running it is harmless.
+Exported at landing by `bin/land` through the `memoir_export` MCP call.
+Re-running the export is harmless; only the `landed:` timestamp varies,
+because `bin/land` writes the chapter before the push.
+The chapter is exported before the landing push, so `bin/land` writes it with
+`state: landed`, the accepted commit, and the export time; the file's presence
+on `main` is the proof.
 
 ```
 ARMATURE.md                  # doctrine: the pilot's standing rules for the crew
@@ -215,9 +220,9 @@ drawing and the chapters before it touches anything. Chapters are append-only; a
 rewritten. Shelved intents are exported too, marked shelved, on the next
 landing.
 
-A limb reads the memoir from the repo (`project.get` returns the chapter
+A limb reads the memoir from the repo (`project_get` returns the chapter
 index and `readFile` on `main` serves any chapter) and the in-flight intent
-from D1 (`intent.get`). That is the "connected brain": the context is in the
+from D1 (`intent_get`). That is the "connected brain": the context is in the
 clone, and any agent that can read a repo can read it without the cockpit.
 
 ## 6. The crew
@@ -233,7 +238,7 @@ to be readable by any agent.
 - **Builder** (`crew/builder.md`): requests a fork, reads the same context,
   does the work, pushes, files a proposal with evidence and touched paths.
   Answers the pilot's challenges. Picks up steers from the change feed.
-- **Watcher** (`crew/watcher.md`): polls `changes.since` on a loop. Files
+- **Watcher** (`crew/watcher.md`): polls `changes_since` on a loop. Files
   pokes tagged `heads_up` (something the pilot will want to know now) or
   `you_should_know` (something that changes a decision). One sentence, with
   the evidence attached. No lectures.
@@ -260,7 +265,7 @@ stylesheet, no client build. Bun for scripts and tests.
 | piece | what it does |
 |---|---|
 | **Artifacts binding** (`env.ARTIFACTS`, namespace per pilot) | create the project repo, fork per limb, mint repo-scoped tokens, `readFile` on any ref for doctrine, memoir chapters and diffs |
-| **D1** (`env.DB`) | pilot, project, intent, exchange, proposal, fork, and an events table that feeds `changes.since` |
+| **D1** (`env.DB`) | pilot, project, intent, exchange, proposal, fork, and an events table that feeds `changes_since` |
 | **Queue** (`env.EVENTS`) | consumer for Artifacts event subscriptions: `pushed` on the project repo verifies landings; `pushed` on forks updates `last_push_at` |
 | **Workers Builds** | connected in the dashboard to the project repo; `main` deploys, other branches preview |
 | **MCP** (`/mcp`) | Streamable HTTP via `createMcpHandler` from the `agents` package, stateless, bearer auth |
@@ -271,7 +276,7 @@ Event subscriptions: the project repo's `pushed` subscription is created at
 project creation through the Cloudflare REST API (repo-level subscriptions
 need `namespace` and `repo_name`). Each fork gets its own subscription at
 fork time, best effort: if creating it fails, Armature logs it and relies on
-the limb's `proposal.file` call, which carries the commit anyway. Landing
+the limb's `proposal_file` call, which carries the commit anyway. Landing
 verification needs the project repo's subscription and fails loudly in the
 cockpit if that subscription is missing.
 
@@ -288,14 +293,14 @@ All tools take and return JSON. Errors return `isError` with a plain message.
 
 | tool | who calls it | does |
 |---|---|---|
-| `project.get(slug)` | any limb | the blueprint (vision and intents in flight), doctrine text, memoir chapter index |
-| `intent.list(slug, state?)` | any limb | intents in order |
-| `intent.get(id)` | any limb | full record: body, exchanges, proposals, forks, overlaps |
-| `exchange.file(intent_id, kind, body, tag?, proposal_id?, reply_to?, limb?)` | crew | file `question`, `poke`, or `reply`; direction set by Armature from the kind |
-| `fork.request(intent_id, limb)` | builder | fork the project repo, mint a write token, record the fork, create its push subscription best effort; returns `remote`, `token`, `base_commit` |
-| `proposal.file(intent_id, limb, commit, paths, evidence)` | builder | record the proposal, run the overlap check |
-| `memoir.export(intent_id)` | `bin/land` | the chapter's three files as text, plus `BLUEPRINT.md` |
-| `changes.since(slug, cursor)` | watcher | events after the cursor: intent state changes, exchanges filed, proposals filed, overlaps found, landings |
+| `project_get(slug)` | any limb | the blueprint (vision and intents in flight), doctrine text, memoir chapter index |
+| `intent_list(slug, state?)` | any limb | intents in order |
+| `intent_get(id)` | any limb | full record: body, exchanges, proposals, forks, overlaps |
+| `exchange_file(intent_id, kind, body, tag?, proposal_id?, reply_to?, limb?)` | crew | file `question`, `poke`, or `reply`; direction set by Armature from the kind |
+| `fork_request(intent_id, limb)` | builder | fork the project repo, mint a write token, record the fork, create its push subscription best effort; returns `remote`, `token`, `base_commit` |
+| `proposal_file(intent_id, limb, commit, paths, evidence)` | builder | record the proposal, run the overlap check |
+| `memoir_export(intent_id)` | `bin/land` | the chapter's three files as text, plus `BLUEPRINT.md` |
+| `changes_since(slug, cursor)` | watcher | events after the cursor: intent state changes, exchanges filed, proposals filed, overlaps found, landings |
 
 Pilot actions are HTTP form posts on the cockpit, not MCP: create project,
 edit vision, write intent, reply to a question, take or dismiss a poke with
@@ -334,7 +339,7 @@ repo, run on the pilot's machine or by a limb. It:
 3. checks the project's `main` is an ancestor of the accepted commit, and
    refuses with instructions to rebase otherwise;
 4. fetches the chapter export from the cockpit API (the same files the
-   `memoir.export` tool returns) and writes `BLUEPRINT.md` and
+   `memoir_export` tool returns) and writes `BLUEPRINT.md` and
    `memoir/NNNN-slug/*`;
 5. commits them on top of the accepted commit with the message
    `Land intent NNNN: <title>.`;
