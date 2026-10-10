@@ -11,7 +11,7 @@
   // The blueprint: vision and in-flight intents. Create with:
   //   wrangler d1 create armature
   // then paste the database_id below.
-  "d1_databases": [{ "binding": "DB", "database_name": "armature", "database_id": "REPLACE_AFTER_CREATE", "migrations_dir": "migrations" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "armature", "database_id": "ed57e8bd-c211-4706-a2b1-5fc76cb95517", "migrations_dir": "migrations" }],
   // Artifacts event subscriptions deliver here. Create with:
   //   wrangler queues create armature-events
   "queues": {
@@ -19,7 +19,7 @@
   },
   "vars": {
     // Filled after `wrangler queues create`: the queue id from `wrangler queues info armature-events`.
-    "EVENTS_QUEUE_ID": "REPLACE_AFTER_CREATE",
+    "EVENTS_QUEUE_ID": "a8273927a0c4499bb129d221cb944e5c",
     "CF_ACCOUNT_ID": "82f59c96d74807a4f02b358892036225",
     "ARTIFACTS_NAMESPACE": "armature"
   }
