@@ -54,6 +54,10 @@ machine, talking to Armature over MCP. Their quality is yours.
 10. When you accept a proposal, run `bin/land <slug> <intent-id>` with the
     variables listed at the top of that script.
 
+The reference deployment, Armature's own: the Worker at
+https://armature.omnyist.workers.dev, the project repo `armature` in the
+`armature` namespace, mirrored to https://github.com/omnypro/armature.
+
 ## Tests
 
 `bun run test` runs the unit tests, the landing script test, and the
