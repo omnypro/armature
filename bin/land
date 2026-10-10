@@ -6,7 +6,7 @@
 #   ARMATURE_URL, ARMATURE_TOKEN, ARMATURE_FORK_TOKEN, ARMATURE_PROJECT_TOKEN
 #   ARMATURE_PROJECT_TOKEN comes from `bunx wrangler artifacts repos issue-token
 #     <slug> --namespace armature --scope write --ttl 604800 --json`.
-#   ARMATURE_FORK_TOKEN comes from `fork.request` while the intent is closed,
+#   ARMATURE_FORK_TOKEN comes from `fork_request` while the intent is closed,
 #     or, once it is accepted, from `bunx wrangler artifacts repos issue-token
 #     <fork-repo> --namespace armature --scope read` (the fork repo name is in
 #     the intent page's Forks table).

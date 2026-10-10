@@ -27,7 +27,7 @@ const raw = async (res: Response) => {
 
 describe("/mcp", () => {
   it("refuses without the seat", async () => {
-    expect((await call("intent.list", { slug: "x" }, "nope")).status).toBe(401);
+    expect((await call("intent_list", { slug: "x" }, "nope")).status).toBe(401);
   });
   it("runs the crew's loop: read the project, fork, propose, see the overlap, read the change feed", async () => {
     const { armature } = buildApp(env);
@@ -35,26 +35,26 @@ describe("/mcp", () => {
     const { project } = await armature.createProject(slug);
     await armature.setVision(project.id, "Vision.");
     const intent = await armature.createIntent(project.id, "Do", "It.");
-    const q = await result(await call("exchange.file", { intent_id: intent.id, kind: "question", body: "Which it?", author: "challenger" }));
+    const q = await result(await call("exchange_file", { intent_id: intent.id, kind: "question", body: "Which it?", author: "challenger" }));
     expect(q.direction).toBe("to_pilot");
     await armature.closeChallenge(intent.id);
-    const got = await result(await call("project.get", { slug }));
+    const got = await result(await call("project_get", { slug }));
     expect(got.project.vision).toBe("Vision.");
     expect(got.intents[0].intent.state).toBe("closed");
-    const fork = await result(await call("fork.request", { intent_id: intent.id, limb: "builder-a" }));
+    const fork = await result(await call("fork_request", { intent_id: intent.id, limb: "builder-a" }));
     expect(fork.remote).toContain(`${slug}--0001--builder-a`);
     expect(typeof fork.token).toBe("string");
     expect(fork.base_commit).toMatch(/^[0-9a-f]{40}$/);
     const fake = (globalThis as { __fakeArtifacts?: import("./fake-artifacts").FakeArtifacts }).__fakeArtifacts!;
     const commit = fake.commit(`${slug}--0001--builder-a`, "main", { "a.ts": "1" });
-    const filed = await result(await call("proposal.file", { intent_id: intent.id, limb: "builder-a", commit, paths: ["a.ts"], evidence: "tests pass" }));
+    const filed = await result(await call("proposal_file", { intent_id: intent.id, limb: "builder-a", commit, paths: ["a.ts"], evidence: "tests pass" }));
     expect(filed.proposal.state).toBe("open");
-    const full = await result(await call("intent.get", { intent_id: intent.id }));
+    const full = await result(await call("intent_get", { intent_id: intent.id }));
     expect(full.proposals[0].proposal.commit).toBe(commit);
-    const feed = await result(await call("changes.since", { slug, cursor: 0 }));
+    const feed = await result(await call("changes_since", { slug, cursor: 0 }));
     expect(feed.events.map((e: { kind: string }) => e.kind)).toContain("proposal.filed");
     expect(feed.cursor).toBeGreaterThan(0);
-    const exported = await result(await call("memoir.export", { intent_id: intent.id }));
+    const exported = await result(await call("memoir_export", { intent_id: intent.id }));
     expect(exported.dir).toBe("0001-do");
   });
   it("will not let the crew speak as the pilot, and files no challenges", async () => {
@@ -62,12 +62,12 @@ describe("/mcp", () => {
     const slug = `p${crypto.randomUUID().slice(0, 6)}`;
     const { project } = await armature.createProject(slug);
     const intent = await armature.createIntent(project.id, "Guard", "It.");
-    const spoof = await raw(await call("exchange.file", { intent_id: intent.id, kind: "question", body: "Answered.", author: "pilot" }));
+    const spoof = await raw(await call("exchange_file", { intent_id: intent.id, kind: "question", body: "Answered.", author: "pilot" }));
     expect(spoof.result.isError).toBe(true);
     expect(spoof.result.content[0].text).toContain('cannot speak as "pilot"');
-    const challenge = await raw(await call("exchange.file", { intent_id: intent.id, kind: "challenge", body: "Hm?", author: "challenger" }));
+    const challenge = await raw(await call("exchange_file", { intent_id: intent.id, kind: "challenge", body: "Hm?", author: "challenger" }));
     expect(challenge.error !== undefined || challenge.result?.isError === true).toBe(true);
-    const full = await result(await call("intent.get", { intent_id: intent.id }));
+    const full = await result(await call("intent_get", { intent_id: intent.id }));
     expect(full.exchanges).toEqual([]);
   });
 });
